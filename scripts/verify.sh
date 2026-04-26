@@ -13,6 +13,9 @@ node scripts/verify-language-foundation.mjs
 echo "==> Phrase engine"
 node scripts/verify-phrase-engine.mjs
 
+echo "==> Phrase expansion"
+node scripts/verify-phrase-expansion.mjs
+
 echo "==> Lint"
 npm run lint
 

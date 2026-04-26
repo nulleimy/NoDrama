@@ -34,6 +34,7 @@ export function generatePhraseEngineReply(
     domain: match.category.domain,
     style,
     channel,
+    language: "cs",
   });
 
   const replies = selection.selected.map((entry, index) => expandReply(entry.text, index));
