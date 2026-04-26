@@ -1,33 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { generateDemoReply, type DemoGeneratorOutput } from "@/lib/demoGenerator";
+import type { DemoGeneratorOutput } from "@/lib/demoGenerator";
+import type { GenerateErrorResponse, GenerateResponse } from "@/lib/generateContract";
 
 const tones = ["Milý", "Asertivní", "Formální", "Vtipný"];
 const relationships = ["Kamarádi", "Práce", "Rodina", "Randění"];
 const channels = ["WhatsApp", "SMS", "E-mail", "Slack"];
 
 const DAILY_FREE_LIMIT = 2;
-
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function readUsage() {
-  if (typeof window === "undefined") return 0;
-
-  const key = `nodrama-demo-usage-${todayKey()}`;
-  const value = window.localStorage.getItem(key);
-
-  return value ? Number(value) || 0 : 0;
-}
-
-function writeUsage(nextValue: number) {
-  if (typeof window === "undefined") return;
-
-  const key = `nodrama-demo-usage-${todayKey()}`;
-  window.localStorage.setItem(key, String(nextValue));
-}
 
 export function InteractiveGenerator() {
   const [situation, setSituation] = useState(
@@ -36,33 +17,53 @@ export function InteractiveGenerator() {
   const [tone, setTone] = useState("Milý");
   const [relationship, setRelationship] = useState("Kamarádi");
   const [channel, setChannel] = useState("WhatsApp");
-  const [usage, setUsage] = useState(() => readUsage());
+  const [usage, setUsage] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [output, setOutput] = useState<DemoGeneratorOutput | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
 
   const remaining = Math.max(DAILY_FREE_LIMIT - usage, 0);
 
-  function handleGenerate() {
-    const currentUsage = readUsage();
+  async function handleGenerate() {
+    setIsGenerating(true);
+    setErrorMessage(null);
 
-    if (currentUsage >= DAILY_FREE_LIMIT) {
-      setUsage(currentUsage);
-      setShowPaywall(true);
-      return;
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          situation,
+          tone,
+          relationship,
+          channel,
+        }),
+      });
+
+      const data = (await response.json()) as GenerateResponse | GenerateErrorResponse;
+
+      if (!data.ok) {
+        if (data.code === "FREE_LIMIT_EXCEEDED") {
+          setUsage(DAILY_FREE_LIMIT);
+          setShowPaywall(true);
+          return;
+        }
+
+        setErrorMessage(data.message);
+        return;
+      }
+
+      setUsage(DAILY_FREE_LIMIT - data.remaining);
+      setOutput(data.output);
+      setShowPaywall(data.remaining <= 0);
+    } catch {
+      setErrorMessage("Nepovedlo se spojit se serverem. Zkus to prosím znovu.");
+    } finally {
+      setIsGenerating(false);
     }
-
-    const result = generateDemoReply({
-      situation,
-      tone,
-      relationship,
-      channel,
-    });
-
-    const nextUsage = currentUsage + 1;
-    writeUsage(nextUsage);
-    setUsage(nextUsage);
-    setOutput(result);
-    setShowPaywall(nextUsage >= DAILY_FREE_LIMIT);
   }
 
   return (
@@ -133,9 +134,15 @@ export function InteractiveGenerator() {
           type="button"
           onClick={handleGenerate}
         >
-          Vygenerovat odpověď
+          {isGenerating ? "Generuju..." : "Vygenerovat odpověď"}
         </button>
       </div>
+
+      {errorMessage ? (
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          {errorMessage}
+        </div>
+      ) : null}
 
       {output ? (
         <div className="mt-4 grid gap-3">
