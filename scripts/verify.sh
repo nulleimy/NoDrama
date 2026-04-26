@@ -7,6 +7,9 @@ node --version
 echo "==> npm"
 npm --version
 
+echo "==> Language foundation"
+node scripts/verify-language-foundation.mjs
+
 echo "==> Lint"
 npm run lint
 
