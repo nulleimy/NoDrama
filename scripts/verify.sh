@@ -10,6 +10,9 @@ npm --version
 echo "==> Language foundation"
 node scripts/verify-language-foundation.mjs
 
+echo "==> Phrase engine"
+node scripts/verify-phrase-engine.mjs
+
 echo "==> Lint"
 npm run lint
 
