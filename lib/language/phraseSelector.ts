@@ -1,7 +1,8 @@
 import { checkAntiCringe } from "@/lib/language/antiCringe";
 import { filterRecentlyUsed } from "@/lib/language/antiRepeat";
-import { phraseBankSeed } from "@/lib/language/phraseBankSeed";
+import { expandedPhraseBank } from "@/lib/language/phraseExpansion";
 import type {
+  LanguageCode,
   PhraseBankEntry,
   ReplyChannel,
   ReplyIntent,
@@ -15,6 +16,7 @@ export type PhraseSelectionInput = {
   domain: SituationDomain;
   style: ReplyStyle;
   channel: ReplyChannel;
+  language?: LanguageCode;
   recentlyUsedIds?: string[];
 };
 
@@ -60,9 +62,10 @@ export function selectPhrases(input: PhraseSelectionInput): PhraseSelectionResul
 
   for (const style of candidateStyles) {
     const candidates = uniqueByText(
-      phraseBankSeed.filter((entry) => {
+      expandedPhraseBank.filter((entry) => {
         if (entry.intent !== input.intent) return false;
         if (entry.style !== style) return false;
+        if (input.language && entry.language !== input.language) return false;
         if (!entry.channel.includes(input.channel)) return false;
         if (!checkAntiCringe(entry.text).ok) return false;
         return true;
@@ -83,9 +86,10 @@ export function selectPhrases(input: PhraseSelectionInput): PhraseSelectionResul
   }
 
   const fallback = uniqueByText(
-    phraseBankSeed.filter((entry) => {
+    expandedPhraseBank.filter((entry) => {
       if (entry.intent !== "cancel") return false;
       if (entry.style !== "neutral") return false;
+      if (input.language && entry.language !== input.language) return false;
       return checkAntiCringe(entry.text).ok;
     })
   );
