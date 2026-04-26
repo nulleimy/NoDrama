@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateRequestSchema, type GenerateErrorResponse } from "@/lib/generateContract";
-import { generateServerDemoReply } from "@/lib/serverDemoGenerator";
+import { generatePhraseEngineReply } from "@/lib/language/phraseEngine";
 import { FREE_DAILY_LIMIT, getOrCreateAnonId, incrementDailyUsage, readDailyUsage } from "@/lib/usageLimit";
 
 export async function POST(request: Request) {
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const nextUsage = await incrementDailyUsage(anonId);
     const remaining = Math.max(FREE_DAILY_LIMIT - nextUsage, 0);
 
-    const response = generateServerDemoReply(parsed.data, remaining, FREE_DAILY_LIMIT);
+    const response = generatePhraseEngineReply(parsed.data, remaining, FREE_DAILY_LIMIT);
 
     return NextResponse.json(response);
   } catch (error) {
