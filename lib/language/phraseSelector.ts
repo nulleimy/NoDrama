@@ -1,6 +1,8 @@
 import { checkAntiCringe } from "@/lib/language/antiCringe";
 import { filterRecentlyUsed } from "@/lib/language/antiRepeat";
 import { expandedPhraseBank } from "@/lib/language/phraseExpansion";
+import { diversifyRankedPhrases } from "@/lib/language/phraseDiversity";
+import { rankPhrases, type PhraseScore } from "@/lib/language/phraseScoring";
 import type {
   LanguageCode,
   PhraseBankEntry,
@@ -22,6 +24,8 @@ export type PhraseSelectionInput = {
 
 export type PhraseSelectionResult = {
   selected: PhraseBankEntry[];
+  scores: PhraseScore[];
+  recommendedId?: string;
   requestedStyle: ReplyStyle;
   effectiveStyle: ReplyStyle;
   fallbackUsed: boolean;
@@ -75,8 +79,13 @@ export function selectPhrases(input: PhraseSelectionInput): PhraseSelectionResul
     const filtered = filterRecentlyUsed(candidates, input.recentlyUsedIds || []);
 
     if (filtered.length > 0) {
+      const ranked = rankPhrases(filtered, input.style, input.channel);
+      const diversified = diversifyRankedPhrases(ranked, 3);
+
       return {
-        selected: filtered.slice(0, 3),
+        selected: diversified.map((item) => item.entry),
+        scores: diversified,
+        recommendedId: diversified[0]?.entry.id,
         requestedStyle: input.style,
         effectiveStyle: style,
         fallbackUsed: style !== input.style || !requestedStyleAllowed,
@@ -94,8 +103,13 @@ export function selectPhrases(input: PhraseSelectionInput): PhraseSelectionResul
     })
   );
 
+  const rankedFallback = rankPhrases(fallback, input.style, input.channel);
+  const diversifiedFallback = diversifyRankedPhrases(rankedFallback, 3);
+
   return {
-    selected: fallback.slice(0, 3),
+    selected: diversifiedFallback.map((item) => item.entry),
+    scores: diversifiedFallback,
+    recommendedId: diversifiedFallback[0]?.entry.id,
     requestedStyle: input.style,
     effectiveStyle: "neutral",
     fallbackUsed: true,

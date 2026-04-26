@@ -22,6 +22,7 @@ export type GenerateResponse = {
     strongReply: string;
     followUpReply: string;
   };
+  meta?: unknown;
 };
 
 export type GenerateErrorResponse = {
