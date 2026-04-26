@@ -16,6 +16,9 @@ node scripts/verify-phrase-engine.mjs
 echo "==> Phrase expansion"
 node scripts/verify-phrase-expansion.mjs
 
+echo "==> Phrase quality"
+node scripts/verify-phrase-quality.mjs
+
 echo "==> Lint"
 npm run lint
 

@@ -23,6 +23,8 @@ export function generatePhraseEngineReply(
     effectiveStyle: string;
     fallbackUsed: boolean;
     blockedReason?: string;
+    recommendedId?: string;
+    scores: { id: string; score: number; reasons: string[] }[];
   };
 } {
   const match = matchSituationCategory(input.situation);
@@ -66,6 +68,12 @@ export function generatePhraseEngineReply(
       effectiveStyle: selection.effectiveStyle,
       fallbackUsed: selection.fallbackUsed,
       blockedReason: selection.blockedReason,
+      recommendedId: selection.recommendedId,
+      scores: selection.scores.map((item) => ({
+        id: item.entry.id,
+        score: item.score,
+        reasons: item.reasons,
+      })),
     },
   };
 }

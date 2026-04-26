@@ -4,6 +4,15 @@ import { useState } from "react";
 import type { DemoGeneratorOutput } from "@/lib/demoGenerator";
 import type { GenerateErrorResponse, GenerateResponse } from "@/lib/generateContract";
 
+type GenerateMeta = {
+  engine?: string;
+  categoryLabel?: string;
+  requestedStyle?: string;
+  effectiveStyle?: string;
+  fallbackUsed?: boolean;
+  recommendedId?: string;
+};
+
 const tones = ["Milý", "Asertivní", "Formální", "Vtipný"];
 const relationships = ["Kamarádi", "Práce", "Rodina", "Randění"];
 const channels = ["WhatsApp", "SMS", "E-mail", "Slack"];
@@ -21,6 +30,7 @@ export function InteractiveGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [output, setOutput] = useState<DemoGeneratorOutput | null>(null);
+  const [meta, setMeta] = useState<GenerateMeta | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
 
   const remaining = Math.max(DAILY_FREE_LIMIT - usage, 0);
@@ -58,6 +68,7 @@ export function InteractiveGenerator() {
 
       setUsage(DAILY_FREE_LIMIT - data.remaining);
       setOutput(data.output);
+      setMeta((data.meta || null) as GenerateMeta | null);
       setShowPaywall(data.remaining <= 0);
     } catch {
       setErrorMessage("Nepovedlo se spojit se serverem. Zkus to prosím znovu.");
@@ -147,25 +158,60 @@ export function InteractiveGenerator() {
       {output ? (
         <div className="mt-4 grid gap-3">
           {[
-            ["Krátká verze", output.shortReply],
-            ["Přirozená verze", output.naturalReply],
-            ["Silnější hranice", output.strongReply],
+            ["Recommended", output.shortReply],
+            ["Alternative", output.naturalReply],
+            ["Firm option", output.strongReply],
             ["Follow-up", output.followUpReply],
-          ].map(([label, text]) => (
-            <div key={label} className="rounded-2xl bg-neutral-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                {label}
+          ].map(([label, text], index) => (
+            <div
+              key={label}
+              className={[
+                "rounded-2xl p-4",
+                index === 0 ? "bg-black text-white" : "bg-neutral-50 text-neutral-950",
+              ].join(" ")}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p
+                  className={[
+                    "text-xs font-semibold uppercase tracking-wide",
+                    index === 0 ? "text-neutral-300" : "text-neutral-500",
+                  ].join(" ")}
+                >
+                  {label}
+                </p>
+                {index === 0 ? (
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-black">
+                    Best pick
+                  </span>
+                ) : null}
+              </div>
+              <p
+                className={[
+                  "mt-2 text-sm leading-6",
+                  index === 0 ? "text-white" : "text-neutral-800",
+                ].join(" ")}
+              >
+                {text}
               </p>
-              <p className="mt-2 text-sm leading-6 text-neutral-800">{text}</p>
             </div>
           ))}
         </div>
       ) : (
+
         <div className="mt-4 rounded-2xl bg-neutral-50 p-4 text-sm leading-6 text-neutral-600">
           Tohle je zatím UX demo bez napojení na AI. Slouží k otestování flow,
           paywallu a hodnoty produktu před backendem.
         </div>
       )}
+
+      {meta ? (
+        <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4 text-xs leading-6 text-neutral-600">
+          <span className="font-bold text-neutral-950">Engine:</span> {meta.engine || "phrase"}
+          {meta.categoryLabel ? <> · <span className="font-bold text-neutral-950">Kategorie:</span> {meta.categoryLabel}</> : null}
+          {meta.effectiveStyle ? <> · <span className="font-bold text-neutral-950">Styl:</span> {meta.effectiveStyle}</> : null}
+          {meta.fallbackUsed ? <> · fallback použitý</> : null}
+        </div>
+      ) : null}
 
       {showPaywall ? (
         <div className="mt-4 rounded-3xl border border-black bg-black p-5 text-white">
