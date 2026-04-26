@@ -1,4 +1,4 @@
-import { GeneratorPreview } from "@/components/GeneratorPreview";
+import { InteractiveGenerator } from "@/components/InteractiveGenerator";
 import { PricingCards } from "@/components/PricingCards";
 
 const useCases = [
@@ -34,7 +34,7 @@ export default function Home() {
               className="rounded-2xl bg-black px-6 py-4 text-center text-sm font-bold text-white hover:bg-neutral-800"
               href="#generator"
             >
-              Vyzkoušet preview
+              Vyzkoušet demo
             </a>
             <a
               className="rounded-2xl border border-neutral-300 bg-white px-6 py-4 text-center text-sm font-bold text-neutral-950 hover:bg-neutral-100"
@@ -57,7 +57,7 @@ export default function Home() {
         </div>
 
         <div id="generator">
-          <GeneratorPreview />
+          <InteractiveGenerator />
         </div>
       </section>
 
