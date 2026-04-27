@@ -2,8 +2,16 @@
 
 import { useState } from "react";
 import { PaywallBox } from "@/components/PaywallBox";
-import type { DemoGeneratorOutput } from "@/lib/demoGenerator";
+import { trackEvent } from "@/lib/analytics/trackEvent";
 import type { GenerateErrorResponse, GenerateResponse } from "@/lib/generateContract";
+
+const DAILY_FREE_LIMIT = 2;
+
+const tones = ["Milý", "Asertivní", "Formální", "Vtipný"];
+const relationships = ["Kamarádi", "Práce", "Klient", "Škola"];
+const channels = ["WhatsApp", "SMS", "E-mail", "Slack"];
+
+type DemoGeneratorOutput = GenerateResponse["output"];
 
 type GenerateMeta = {
   engine?: string;
@@ -14,32 +22,25 @@ type GenerateMeta = {
   recommendedId?: string;
 };
 
-const tones = ["Milý", "Asertivní", "Formální", "Vtipný"];
-const relationships = ["Kamarádi", "Práce", "Rodina", "Randění"];
-const channels = ["WhatsApp", "SMS", "E-mail", "Slack"];
-
-const DAILY_FREE_LIMIT = 2;
-
 export function InteractiveGenerator() {
-  const [situation, setSituation] = useState(
-    "Nechci dneska přijít na oslavu, ale nechci působit hnusně."
-  );
+  const [situation, setSituation] = useState("Nechci dneska přijít na oslavu, ale nechci znít hnusně.");
   const [tone, setTone] = useState("Milý");
   const [relationship, setRelationship] = useState("Kamarádi");
   const [channel, setChannel] = useState("WhatsApp");
   const [usage, setUsage] = useState(0);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [output, setOutput] = useState<DemoGeneratorOutput | null>(null);
   const [meta, setMeta] = useState<GenerateMeta | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const remaining = Math.max(DAILY_FREE_LIMIT - usage, 0);
 
   async function handleCopy(label: string, text: string) {
     try {
       await navigator.clipboard.writeText(text);
+      await trackEvent("copy_reply", { label });
       setCopyStatus(`${label} zkopírováno`);
       window.setTimeout(() => setCopyStatus(null), 1800);
     } catch {
@@ -49,8 +50,15 @@ export function InteractiveGenerator() {
   }
 
   async function handleGenerate() {
-    setIsGenerating(true);
+    setIsLoading(true);
     setErrorMessage(null);
+
+    await trackEvent("generate_clicked", {
+      tone,
+      relationship,
+      channel,
+      situationLength: situation.length,
+    });
 
     try {
       const response = await fetch("/api/generate", {
@@ -69,107 +77,90 @@ export function InteractiveGenerator() {
       const data = (await response.json()) as GenerateResponse | GenerateErrorResponse;
 
       if (!data.ok) {
-        if (data.code === "FREE_LIMIT_EXCEEDED") {
-          setUsage(DAILY_FREE_LIMIT);
-          setShowPaywall(true);
-          return;
-        }
-
-        setErrorMessage(data.message);
+        await trackEvent("generate_failed", {
+          message: data.message || "unknown",
+        });
+        setErrorMessage(data.message || "Něco se pokazilo. Zkus to prosím znovu.");
+        setShowPaywall(data.code === "FREE_LIMIT_EXCEEDED");
         return;
       }
+
+      await trackEvent("generate_success", {
+        remaining: data.remaining,
+        limit: data.limit,
+      });
 
       setUsage(DAILY_FREE_LIMIT - data.remaining);
       setOutput(data.output);
       setMeta((data.meta || null) as GenerateMeta | null);
       setShowPaywall(data.remaining <= 0);
+
+      if (data.remaining <= 0) {
+        await trackEvent("paywall_shown", { source: "generate_limit" });
+      }
     } catch {
-      setErrorMessage("Nepovedlo se spojit se serverem. Zkus to prosím znovu.");
+      await trackEvent("generate_failed", {
+        message: "network_error",
+      });
+      setErrorMessage("Nepodařilo se spojit se serverem.");
     } finally {
-      setIsGenerating(false);
+      setIsLoading(false);
     }
   }
 
   return (
-    <section className="rounded-[2rem] border border-neutral-200 bg-white p-4 shadow-2xl shadow-neutral-200/70 md:p-6">
-      <div className="rounded-3xl bg-neutral-950 p-5 text-white">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-neutral-400">
-            Live UX demo
+    <section className="rounded-[2rem] border border-neutral-200 bg-white p-5 shadow-xl shadow-neutral-200/60">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-[0.25em] text-neutral-500">
+            Live demo
           </p>
-          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold">
-            Free zbývá: {remaining}/{DAILY_FREE_LIMIT}
-          </span>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-950">
+            Zkus si odpověď
+          </h2>
         </div>
-
-        <h2 className="mt-3 text-2xl font-semibold">Co potřebuješ říct bez dramatu?</h2>
-
-        <textarea
-          className="mt-5 min-h-28 w-full resize-none rounded-2xl border border-white/10 bg-white/10 p-4 text-sm text-white outline-none placeholder:text-neutral-400"
-          value={situation}
-          onChange={(event) => setSituation(event.target.value)}
-          placeholder="Popiš situaci..."
-          aria-label="Situace"
-        />
-
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <label className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-            Tón
-            <select
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-neutral-900 p-3 text-sm text-white outline-none"
-              value={tone}
-              onChange={(event) => setTone(event.target.value)}
-            >
-              {tones.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-            Vztah
-            <select
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-neutral-900 p-3 text-sm text-white outline-none"
-              value={relationship}
-              onChange={(event) => setRelationship(event.target.value)}
-            >
-              {relationships.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-            Kanál
-            <select
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-neutral-900 p-3 text-sm text-white outline-none"
-              value={channel}
-              onChange={(event) => setChannel(event.target.value)}
-            >
-              {channels.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          </label>
+        <div className="rounded-full bg-neutral-100 px-4 py-2 text-sm font-bold text-neutral-700">
+          Zbývá dnes: {remaining}/{DAILY_FREE_LIMIT}
         </div>
-
-        <button
-          className="mt-5 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold text-black transition hover:bg-neutral-200"
-          type="button"
-          onClick={handleGenerate}
-        >
-          {isGenerating ? "Generuju..." : "Vygenerovat odpověď"}
-        </button>
       </div>
 
+      <label className="mt-5 block text-sm font-bold text-neutral-800">
+        Situace
+        <textarea
+          value={situation}
+          onChange={(event) => setSituation(event.target.value)}
+          className="mt-2 min-h-28 w-full rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-sm leading-6 outline-none ring-black/10 focus:ring-4"
+        />
+      </label>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <Select label="Tón" value={tone} values={tones} onChange={setTone} />
+        <Select
+          label="Vztah"
+          value={relationship}
+          values={relationships}
+          onChange={setRelationship}
+        />
+        <Select label="Kanál" value={channel} values={channels} onChange={setChannel} />
+      </div>
+
+      <button
+        type="button"
+        onClick={handleGenerate}
+        disabled={isLoading || situation.trim().length < 5}
+        className="mt-5 w-full rounded-2xl bg-black px-6 py-4 text-sm font-black uppercase tracking-[0.2em] text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300"
+      >
+        {isLoading ? "Generuju..." : "Vygenerovat odpověď"}
+      </button>
+
       {errorMessage ? (
-        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
           {errorMessage}
         </div>
       ) : null}
 
       {output ? (
-        <div className="mt-4 grid gap-3">
+        <div className="mt-5 grid gap-3">
           {[
             ["Recommended", output.shortReply],
             ["Alternative", output.naturalReply],
@@ -221,13 +212,7 @@ export function InteractiveGenerator() {
             </div>
           ))}
         </div>
-      ) : (
-
-        <div className="mt-4 rounded-2xl bg-neutral-50 p-4 text-sm leading-6 text-neutral-600">
-          Tohle je zatím UX demo bez napojení na AI. Slouží k otestování flow,
-          paywallu a hodnoty produktu před backendem.
-        </div>
-      )}
+      ) : null}
 
       {copyStatus ? (
         <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-700">
@@ -238,13 +223,59 @@ export function InteractiveGenerator() {
       {meta ? (
         <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4 text-xs leading-6 text-neutral-600">
           <span className="font-bold text-neutral-950">Engine:</span> {meta.engine || "phrase"}
-          {meta.categoryLabel ? <> · <span className="font-bold text-neutral-950">Kategorie:</span> {meta.categoryLabel}</> : null}
-          {meta.effectiveStyle ? <> · <span className="font-bold text-neutral-950">Styl:</span> {meta.effectiveStyle}</> : null}
+          {meta.categoryLabel ? (
+            <>
+              {" "}
+              · <span className="font-bold text-neutral-950">Kategorie:</span>{" "}
+              {meta.categoryLabel}
+            </>
+          ) : null}
+          {meta.effectiveStyle ? (
+            <>
+              {" "}
+              · <span className="font-bold text-neutral-950">Styl:</span>{" "}
+              {meta.effectiveStyle}
+            </>
+          ) : null}
           {meta.fallbackUsed ? <> · fallback použitý</> : null}
         </div>
       ) : null}
 
-      {showPaywall ? <PaywallBox onClose={() => setShowPaywall(false)} /> : null}
+      {showPaywall ? (
+        <PaywallBox
+          onClose={() => {
+            void trackEvent("paywall_closed", { source: "paywall_box" });
+            setShowPaywall(false);
+          }}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function Select({
+  label,
+  value,
+  values,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  values: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block text-sm font-bold text-neutral-800">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 outline-none ring-black/10 focus:ring-4"
+      >
+        {values.map((item) => (
+          <option key={item}>{item}</option>
+        ))}
+      </select>
+    </label>
   );
 }
