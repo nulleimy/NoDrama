@@ -1,5 +1,6 @@
 import { InteractiveGenerator } from "@/components/InteractiveGenerator";
 import { PricingCards } from "@/components/PricingCards";
+import { CreditPacks } from "@/components/CreditPacks";
 
 const useCases = [
   "odmítnutí schůzky",
@@ -95,6 +96,22 @@ export default function Home() {
           </p>
         </div>
         <PricingCards />
+
+        <div id="credit-packs" className="mt-12 rounded-[2rem] border border-neutral-200 bg-white p-6">
+          <p className="text-sm font-bold uppercase tracking-[0.25em] text-neutral-500">
+            Jednorázové balíčky
+          </p>
+          <h3 className="mt-3 text-3xl font-black tracking-tight">
+            Nechceš subscription? Kup si jen odpovědi.
+          </h3>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-neutral-600">
+            Mikro balíčky jsou určené pro impulsní nákup přesně ve chvíli,
+            kdy dojdou free odpovědi.
+          </p>
+          <div className="mt-6">
+            <CreditPacks />
+          </div>
+        </div>
       </section>
     </main>
   );
