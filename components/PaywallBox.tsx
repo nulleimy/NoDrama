@@ -1,4 +1,7 @@
+"use client";
+
 import { CreditPacks } from "@/components/CreditPacks";
+import { trackEvent } from "@/lib/analytics/trackEvent";
 import { upgradeCopy } from "@/lib/monetization";
 
 export function PaywallBox({ onClose }: { onClose: () => void }) {
@@ -14,12 +17,24 @@ export function PaywallBox({ onClose }: { onClose: () => void }) {
         <a
           className="rounded-2xl bg-white px-5 py-3 text-center text-sm font-bold text-black hover:bg-neutral-200"
           href="#pricing"
+          onClick={() => {
+            void trackEvent("pricing_cta_clicked", {
+              cta: "primary_pro",
+              source: "paywall",
+            });
+          }}
         >
           {upgradeCopy.primaryCta}
         </a>
         <a
           className="rounded-2xl border border-white/20 px-5 py-3 text-center text-sm font-bold text-white hover:bg-white/10"
           href="#credit-packs"
+          onClick={() => {
+            void trackEvent("pricing_cta_clicked", {
+              cta: "secondary_credit_pack",
+              source: "paywall",
+            });
+          }}
         >
           {upgradeCopy.secondaryCta}
         </a>

@@ -1,3 +1,6 @@
+"use client";
+
+import { trackEvent } from "@/lib/analytics/trackEvent";
 import { creditPacks } from "@/lib/monetization";
 
 export function CreditPacks({ compact = false }: { compact?: boolean }) {
@@ -21,9 +24,18 @@ export function CreditPacks({ compact = false }: { compact?: boolean }) {
               </span>
             ) : null}
           </div>
+
           <p className="mt-3 text-sm leading-6 text-neutral-600">{pack.description}</p>
+
           <button
             type="button"
+            onClick={() => {
+              void trackEvent("credit_pack_clicked", {
+                packId: pack.id,
+                price: pack.price,
+                credits: pack.credits,
+              });
+            }}
             className="mt-4 w-full rounded-xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white hover:bg-neutral-800"
           >
             Koupit
