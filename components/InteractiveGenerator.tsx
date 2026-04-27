@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PaywallBox } from "@/components/PaywallBox";
 import type { DemoGeneratorOutput } from "@/lib/demoGenerator";
 import type { GenerateErrorResponse, GenerateResponse } from "@/lib/generateContract";
 
@@ -29,11 +30,23 @@ export function InteractiveGenerator() {
   const [usage, setUsage] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [output, setOutput] = useState<DemoGeneratorOutput | null>(null);
   const [meta, setMeta] = useState<GenerateMeta | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
 
   const remaining = Math.max(DAILY_FREE_LIMIT - usage, 0);
+
+  async function handleCopy(label: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyStatus(`${label} zkopírováno`);
+      window.setTimeout(() => setCopyStatus(null), 1800);
+    } catch {
+      setCopyStatus("Kopírování selhalo");
+      window.setTimeout(() => setCopyStatus(null), 1800);
+    }
+  }
 
   async function handleGenerate() {
     setIsGenerating(true);
@@ -193,6 +206,18 @@ export function InteractiveGenerator() {
               >
                 {text}
               </p>
+              <button
+                type="button"
+                onClick={() => handleCopy(label, text)}
+                className={[
+                  "mt-4 rounded-xl px-4 py-2 text-xs font-bold transition",
+                  index === 0
+                    ? "bg-white text-black hover:bg-neutral-200"
+                    : "bg-neutral-950 text-white hover:bg-neutral-800",
+                ].join(" ")}
+              >
+                Kopírovat
+              </button>
             </div>
           ))}
         </div>
@@ -204,6 +229,12 @@ export function InteractiveGenerator() {
         </div>
       )}
 
+      {copyStatus ? (
+        <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-700">
+          {copyStatus}
+        </div>
+      ) : null}
+
       {meta ? (
         <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4 text-xs leading-6 text-neutral-600">
           <span className="font-bold text-neutral-950">Engine:</span> {meta.engine || "phrase"}
@@ -213,33 +244,7 @@ export function InteractiveGenerator() {
         </div>
       ) : null}
 
-      {showPaywall ? (
-        <div className="mt-4 rounded-3xl border border-black bg-black p-5 text-white">
-          <p className="text-sm font-bold uppercase tracking-[0.25em] text-neutral-400">
-            Free limit vyčerpán
-          </p>
-          <h3 className="mt-3 text-2xl font-bold">Chceš další odpovědi bez čekání?</h3>
-          <p className="mt-3 text-sm leading-6 text-neutral-300">
-            Free plán má schválně jen 2 generace denně. Pro odemkne follow-upy,
-            všechny tóny a 500 generací měsíčně.
-          </p>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <a
-              className="rounded-2xl bg-white px-5 py-3 text-center text-sm font-bold text-black hover:bg-neutral-200"
-              href="#pricing"
-            >
-              Odemknout Pro
-            </a>
-            <button
-              className="rounded-2xl border border-white/20 px-5 py-3 text-sm font-bold text-white hover:bg-white/10"
-              type="button"
-              onClick={() => setShowPaywall(false)}
-            >
-              Zatím zavřít
-            </button>
-          </div>
-        </div>
-      ) : null}
+      {showPaywall ? <PaywallBox onClose={() => setShowPaywall(false)} /> : null}
     </section>
   );
 }
