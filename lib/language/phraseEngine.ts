@@ -21,11 +21,16 @@ function expandReply(base: string, index: number) {
 function makeFirmReply(base: string) {
   const normalized = base.replace(/\s+/g, " ").trim();
 
-  if (normalized.includes("nebudu mít prostor") || normalized.includes("nezúčastním")) {
-    return normalized;
+  if (
+    normalized.includes("nebudu mít prostor") ||
+    normalized.includes("nezúčastním") ||
+    normalized.includes("nevyhovuje") ||
+    normalized.includes("nemohu")
+  ) {
+    return `${normalized} Nechci to zbytečně rozebírat.`;
   }
 
-  return "Tentokrát se nezúčastním. Dávám vědět rovnou a nechci to zbytečně rozebírat.";
+  return `${normalized} Dávám vědět rovnou a nechci to zbytečně rozebírat.`;
 }
 
 export function generatePhraseEngineReply(
