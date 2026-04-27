@@ -6,8 +6,26 @@ import { mapUiToneToReplyStyle } from "@/lib/language/toneMap";
 
 function expandReply(base: string, index: number) {
   if (index === 0) return base;
-  if (index === 1) return `${base} Díky za pochopení.`;
-  return `${base} Dávám vědět rovnou, ať s tím můžeš počítat.`;
+
+  if (index === 1) {
+    if (base.includes("díky za pochopení") || base.includes("Díky za pochopení")) {
+      return base;
+    }
+
+    return `${base} Ozvu se později.`;
+  }
+
+  return makeFirmReply(base);
+}
+
+function makeFirmReply(base: string) {
+  const normalized = base.replace(/\s+/g, " ").trim();
+
+  if (normalized.includes("nebudu mít prostor") || normalized.includes("nezúčastním")) {
+    return normalized;
+  }
+
+  return "Tentokrát se nezúčastním. Dávám vědět rovnou a nechci to zbytečně rozebírat.";
 }
 
 export function generatePhraseEngineReply(

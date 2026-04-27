@@ -22,13 +22,38 @@ function tokenSimilarity(a: string, b: string) {
   return intersection / union;
 }
 
+function openingFingerprint(text: string) {
+  return normalize(text).slice(0, 4).join(" ");
+}
+
+function coreFingerprint(text: string) {
+  return normalize(text).slice(0, 9).join(" ");
+}
+
+function isTooSimilar(existing: PhraseScore, candidate: PhraseScore) {
+  const existingText = existing.entry.text;
+  const candidateText = candidate.entry.text;
+
+  if (tokenSimilarity(existingText, candidateText) > 0.52) {
+    return true;
+  }
+
+  if (openingFingerprint(existingText) === openingFingerprint(candidateText)) {
+    return true;
+  }
+
+  if (coreFingerprint(existingText) === coreFingerprint(candidateText)) {
+    return true;
+  }
+
+  return false;
+}
+
 export function diversifyRankedPhrases(ranked: PhraseScore[], limit = 3): PhraseScore[] {
   const selected: PhraseScore[] = [];
 
   for (const candidate of ranked) {
-    const tooSimilar = selected.some(
-      (existing) => tokenSimilarity(existing.entry.text, candidate.entry.text) > 0.72
-    );
+    const tooSimilar = selected.some((existing) => isTooSimilar(existing, candidate));
 
     if (!tooSimilar) {
       selected.push(candidate);
