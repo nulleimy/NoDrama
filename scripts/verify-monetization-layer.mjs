@@ -33,4 +33,15 @@ if (!page.includes("Jednorázové balíčky")) {
   fail("Homepage does not include credit packs.");
 }
 
+const creditPacks = readFileSync("components/CreditPacks.tsx", "utf8");
+const paywall = readFileSync("components/PaywallBox.tsx", "utf8");
+
+if (!creditPacks.includes("compact")) {
+  fail("CreditPacks does not support compact mobile-safe rendering.");
+}
+
+if (!paywall.includes("CreditPacks compact")) {
+  fail("Paywall does not use compact credit packs.");
+}
+
 console.log("✅ Monetization layer verified");

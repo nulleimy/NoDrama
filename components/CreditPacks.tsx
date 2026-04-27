@@ -1,8 +1,8 @@
 import { creditPacks } from "@/lib/monetization";
 
-export function CreditPacks() {
+export function CreditPacks({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    <div className={compact ? "grid gap-3" : "grid gap-3 md:grid-cols-3"}>
       {creditPacks.map((pack) => (
         <article
           key={pack.id}
