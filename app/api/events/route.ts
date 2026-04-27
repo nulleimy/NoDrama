@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
-    logAnalyticsEvent(parsed.data);
+    await logAnalyticsEvent(parsed.data);
 
     return NextResponse.json({
       ok: true,
