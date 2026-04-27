@@ -37,4 +37,8 @@ if (!ui.includes("Best pick")) {
   fail("UI does not show Best pick label.");
 }
 
+if (!engine.includes("makeFirmReply")) {
+  fail("Phrase engine does not create a distinct firm reply.");
+}
+
 console.log("✅ Phrase quality engine verified");
