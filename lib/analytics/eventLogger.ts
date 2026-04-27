@@ -1,14 +1,12 @@
 import type { AnalyticsEvent } from "@/lib/analytics/eventContract";
+import { storeAnalyticsEvent } from "@/lib/analytics/eventStore";
 
-export function logAnalyticsEvent(event: AnalyticsEvent) {
-  const safeEvent = {
-    ...event,
-    timestamp: event.timestamp || new Date().toISOString(),
-  };
+export async function logAnalyticsEvent(event: AnalyticsEvent) {
+  const storedEvent = await storeAnalyticsEvent(event);
 
   if (process.env.NODE_ENV !== "production") {
-    console.info("[analytics:event]", JSON.stringify(safeEvent));
+    console.info("[analytics:event]", JSON.stringify(storedEvent));
   }
 
-  return safeEvent;
+  return storedEvent;
 }
