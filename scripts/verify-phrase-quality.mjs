@@ -41,4 +41,8 @@ if (!engine.includes("makeFirmReply")) {
   fail("Phrase engine does not create a distinct firm reply.");
 }
 
+if (!engine.includes("`${normalized} Dávám vědět rovnou")) {
+  fail("Firm reply should preserve selected phrase instead of replacing it.");
+}
+
 console.log("✅ Phrase quality engine verified");
