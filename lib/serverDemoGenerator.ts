@@ -1,33 +1,9 @@
 import type { GenerateRequest, GenerateResponse } from "@/lib/generateContract";
 
-function channelPrefix(channel: GenerateRequest["channel"]) {
-  if (channel === "E-mail") return "Dobrý den,";
-  if (channel === "Slack") return "Ahoj,";
-  return "Hele,";
-}
-
-function toneSoftener(tone: GenerateRequest["tone"]) {
-  if (tone === "Milý") return "mrzí mě to";
-  if (tone === "Asertivní") return "dávám vědět narovinu";
-  if (tone === "Formální") return "omlouvám se za komplikace";
-  if (tone === "Vtipný") return "dneska nejsem ve své nejslavnější životní epizodě";
-  return "radši to říkám rovnou";
-}
-
-function relationshipLine(relationship: GenerateRequest["relationship"]) {
-  if (relationship === "Práce") {
-    return "Nechci to lámat přes koleno a radši to posunu férově.";
-  }
-
-  if (relationship === "Rodina") {
-    return "Potřebuju si dneska nechat trochu prostoru a nechci dorazit napůl mimo.";
-  }
-
-  if (relationship === "Randění") {
-    return "Nechci to hrát do ztracena, radši ti to řeknu normálně.";
-  }
-
-  return "Nechci slibovat něco, co dneska nedám.";
+function channelPrefix(channel: GenerateRequest["channel"], language: GenerateRequest["language"]) {
+  if (channel === "email") return language === "cs" ? "Dobrý den," : "Hello,";
+  if (channel === "work_chat") return language === "cs" ? "Ahoj," : "Hey,";
+  return language === "cs" ? "Ahoj," : "Hi,";
 }
 
 export function generateServerDemoReply(
@@ -35,20 +11,27 @@ export function generateServerDemoReply(
   remaining: number,
   limit: number
 ): GenerateResponse {
-  const prefix = channelPrefix(input.channel);
-  const softener = toneSoftener(input.tone);
-  const relation = relationshipLine(input.relationship);
+  const prefix = channelPrefix(input.channel, input.language);
+  const isCzech = input.language === "cs";
 
   return {
     ok: true,
     remaining,
     limit,
+    text: isCzech ? "Dnes to bohužel nedám." : "I won’t make it today.",
     output: {
-      shortReply: `${prefix} dneska to bohužel nedám. ${softener}. Ozvu se později.`,
-      naturalReply: `${prefix} k tomu dnešku — ${softener}, ale nakonec to nezvládnu. ${relation}`,
-      strongReply: `${prefix} potřebuju to dneska zrušit. Nechci kolem toho dělat drama ani vymýšlet zbytečné detaily. Díky za pochopení.`,
-      followUpReply:
-        "Kdyby se ptali dál: „Je to trochu osobní/praktické, nechci to moc rozebírat. Dávám vědět hlavně proto, abys s tím mohl/a počítat.“",
+      shortReply: isCzech
+        ? `${prefix} dnes to bohužel nedám.`
+        : `${prefix} I won’t make it today.`,
+      naturalReply: isCzech
+        ? `${prefix} dávám vědět včas, dnes to nestihnu.`
+        : `${prefix} giving you a heads-up, I won’t make it today.`,
+      strongReply: isCzech
+        ? `${prefix} dnes se nezúčastním.`
+        : `${prefix} I won’t be joining today.`,
+      followUpReply: isCzech
+        ? "Kdyby se ptali dál: Nechci to teď víc rozebírat."
+        : "If they ask more: I’d rather not go into details right now.",
     },
   };
 }
