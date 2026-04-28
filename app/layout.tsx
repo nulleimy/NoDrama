@@ -1,11 +1,16 @@
 import "./globals.css";
+import { cookies } from "next/headers";
 import { AuthProvider } from "@/components/AuthProvider";
 import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 import LanguageSwitch from "@/components/i18n/LanguageSwitch";
+import { normalizeLang } from "@/lib/i18n/pathLocale";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const htmlLang = normalizeLang(cookieStore.get("lang")?.value);
+
   return (
-    <html lang="cs">
+    <html lang={htmlLang}>
       <body>
         <AuthProvider>
           <LanguageProvider>

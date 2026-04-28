@@ -1,12 +1,11 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import { usePathname } from "next/navigation";
+import { Lang } from "@/lib/i18n/languages";
+import { getLocaleFromPathname, normalizeLang } from "@/lib/i18n/pathLocale";
 
-export type Lang = "cs" | "en";
-
-function detectInitialLang(): Lang {
-  if (typeof window === "undefined") return "cs";
-
+function detectStoredLang(): Lang {
   const saved = window.localStorage.getItem("lang");
   if (saved === "cs" || saved === "en") return saved;
 
@@ -27,11 +26,20 @@ const LanguageContext = createContext<{
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(() => detectInitialLang());
+  const pathname = usePathname();
+  const [storedLang, setStoredLang] = useState<Lang>(() => {
+    if (typeof window === "undefined") return "cs";
+    return detectStoredLang();
+  });
+
+  const pathLang = getLocaleFromPathname(pathname);
+  const lang = pathLang ?? storedLang;
 
   const setLang = (nextLang: Lang) => {
-    window.localStorage.setItem("lang", nextLang);
-    setLangState(nextLang);
+    const safeLang = normalizeLang(nextLang);
+    window.localStorage.setItem("lang", safeLang);
+    document.cookie = `lang=${safeLang}; path=/; max-age=31536000; samesite=lax`;
+    setStoredLang(safeLang);
   };
 
   return (
