@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateRequestSchema, type GenerateErrorResponse } from "@/lib/generateContract";
 import { generatePhraseEngineReply } from "@/lib/language/phraseEngine";
+import { qualityGate } from "@/lib/qa/qualityGate";
 import { FREE_DAILY_LIMIT, getOrCreateAnonId, incrementDailyUsage, readDailyUsage } from "@/lib/usageLimit";
 
 export async function POST(request: Request) {
@@ -41,8 +42,33 @@ export async function POST(request: Request) {
     const remaining = Math.max(FREE_DAILY_LIMIT - nextUsage, 0);
 
     const response = generatePhraseEngineReply(parsed.data, remaining, FREE_DAILY_LIMIT);
+    const qaContext = {
+      language: "cs" as const,
+      category: parsed.data.relationship === "Práce" ? "work" : "social",
+    };
 
-    return NextResponse.json(response);
+    const [shortReply, naturalReply, strongReply, followUpReply] = await Promise.all([
+      qualityGate(response.output.shortReply, qaContext),
+      qualityGate(response.output.naturalReply, qaContext),
+      qualityGate(response.output.strongReply, qaContext),
+      qualityGate(response.output.followUpReply, qaContext),
+    ]);
+
+    return NextResponse.json({
+      ...response,
+      output: {
+        shortReply: shortReply.final,
+        naturalReply: naturalReply.final,
+        strongReply: strongReply.final,
+        followUpReply: followUpReply.final,
+      },
+      qa: {
+        shortReply: shortReply.verdict,
+        naturalReply: naturalReply.verdict,
+        strongReply: strongReply.verdict,
+        followUpReply: followUpReply.verdict,
+      },
+    });
   } catch (error) {
     console.error("Generate API error", error);
 

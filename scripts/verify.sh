@@ -19,6 +19,9 @@ node scripts/verify-phrase-expansion.mjs
 echo "==> Phrase quality"
 node scripts/verify-phrase-quality.mjs
 
+echo "==> QA engine"
+node scripts/verify-qa-engine.mjs
+
 echo "==> Monetization layer"
 node scripts/verify-monetization-layer.mjs
 
