@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getCurrentSession } from "@/lib/auth/session";
+import { getOrCreateAnonId } from "@/lib/usageLimit";
 
 const anonCookieName = "nodrama_anon_id";
 
@@ -11,11 +12,7 @@ export async function getCreditUserId() {
   }
 
   const cookieStore = await cookies();
-  const anonId = cookieStore.get(anonCookieName)?.value;
+  const anonId = cookieStore.get(anonCookieName)?.value || (await getOrCreateAnonId());
 
-  if (anonId) {
-    return `anon:${anonId}`;
-  }
-
-  return "anon:unknown";
+  return `anon:${anonId}`;
 }
