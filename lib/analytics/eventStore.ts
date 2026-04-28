@@ -59,6 +59,14 @@ export async function storeAnalyticsEvent(event: AnalyticsEvent) {
   return storedEvent;
 }
 
+function parseAnalyticsLine(line: string): StoredAnalyticsEvent | null {
+  try {
+    return JSON.parse(line) as StoredAnalyticsEvent;
+  } catch {
+    return null;
+  }
+}
+
 export async function readAnalyticsEvents(): Promise<StoredAnalyticsEvent[]> {
   try {
     const raw = await readFile(analyticsFile, "utf8");
@@ -66,7 +74,8 @@ export async function readAnalyticsEvents(): Promise<StoredAnalyticsEvent[]> {
     return raw
       .split("\n")
       .filter(Boolean)
-      .map((line) => JSON.parse(line) as StoredAnalyticsEvent);
+      .map(parseAnalyticsLine)
+      .filter((event): event is StoredAnalyticsEvent => event !== null);
   } catch {
     return [];
   }
