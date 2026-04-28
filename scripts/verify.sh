@@ -22,6 +22,9 @@ node scripts/verify-phrase-quality.mjs
 echo "==> Monetization layer"
 node scripts/verify-monetization-layer.mjs
 
+echo "==> Admin analytics security"
+node scripts/verify-admin-analytics-security.mjs
+
 echo "==> Lint"
 npm run lint
 
