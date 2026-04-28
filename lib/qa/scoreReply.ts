@@ -1,0 +1,44 @@
+import { QaScore } from "./qaTypes";
+import { CATEGORY_WEIGHTS } from "./weights";
+
+export function scoreReply(text: string, ctx: any): QaScore {
+  const weights = CATEGORY_WEIGHTS[ctx.category] || CATEGORY_WEIGHTS.default;
+
+  let clarity = text.length > 20 ? 1 : 0.4;
+  let honesty = /nevím|nestíhám|je to na mě|I can't|I won’t/.test(text) ? 1 : 0.6;
+  let dramaReduction = !/vždycky|nikdy|your fault/.test(text) ? 1 : 0.3;
+  let boundaryStrength = /nemůžu|nebude to možné|I can’t/.test(text) ? 1 : 0.5;
+
+  let languageNaturalness =
+    ctx.language === "cs"
+      ? /[a-zA-Z]{3,}/.test(text) ? 0.5 : 1
+      : /[ěščřžýáíé]/.test(text) ? 0.5 : 1;
+
+  let total =
+    (
+      clarity * weights.clarity +
+      honesty * weights.honesty +
+      dramaReduction * weights.dramaReduction +
+      boundaryStrength * weights.boundaryStrength +
+      languageNaturalness
+    ) / 5;
+
+  let verdict: QaScore["verdict"] = "pass";
+
+  if (total < 0.5) verdict = "reject";
+  else if (total < 0.75) verdict = "rewrite";
+
+  return {
+    clarity,
+    honesty,
+    dramaReduction,
+    relationshipPreservation: 0.8,
+    boundaryStrength,
+    toneMatch: 0.8,
+    channelMatch: 0.8,
+    languageNaturalness,
+    total,
+    verdict,
+    reasons: []
+  };
+}
