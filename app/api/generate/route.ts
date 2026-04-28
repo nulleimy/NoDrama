@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateRequestSchema, type GenerateErrorResponse } from "@/lib/generateContract";
+import { consumeCredit } from "@/lib/credits/creditStore";
+import { getCreditUserId } from "@/lib/credits/userIdentity";
 import { generatePhraseEngineReply } from "@/lib/language/phraseEngine";
 import { FREE_DAILY_LIMIT, getOrCreateAnonId, incrementDailyUsage, readDailyUsage } from "@/lib/usageLimit";
 

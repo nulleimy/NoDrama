@@ -41,4 +41,4 @@ yarn-error.log*
 next-env.d.ts
 
 # analytics logs
-data/analytics/*.jsonl
+data/analytics/*.jsonl\n\n# local credit store\ndata/credits/*.json\n

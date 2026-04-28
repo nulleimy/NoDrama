@@ -1,4 +1,5 @@
 import { AuthButtons } from "@/components/AuthButtons";
+import { CreditStatusCard } from "@/components/CreditStatusCard";
 
 export default function AccountPage() {
   return (
@@ -12,8 +13,9 @@ export default function AccountPage() {
           Přihlášení je připravené pro budoucí kredity, historii odpovědí a platby.
         </p>
 
-        <div className="mt-8">
+        <div className="mt-8 grid gap-4">
           <AuthButtons />
+          <CreditStatusCard />
         </div>
       </div>
     </main>
