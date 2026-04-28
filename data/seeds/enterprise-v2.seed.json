@@ -1,0 +1,34 @@
+{
+  "version": "enterprise-v2",
+  "createdAt": "2026-04-28T00:00:00.000Z",
+  "creditAccounts": [
+    {
+      "userId": "seed_anonymous",
+      "credits": 20
+    },
+    {
+      "userId": "seed_tester_pro",
+      "credits": 500
+    }
+  ],
+  "qaSamples": [
+    {
+      "text": "Nestíhám to dneska, ozvu se zítra.",
+      "language": "cs",
+      "category": "work"
+    },
+    {
+      "text": "I can't make this today, I will follow up tomorrow.",
+      "language": "en",
+      "category": "work"
+    },
+    {
+      "text": "Nechci to dál řešit, díky za pochopení.",
+      "language": "cs",
+      "category": "social"
+    }
+  ],
+  "monetization": {
+    "defaultPackIds": ["pack_20", "pack_100", "pack_500"]
+  }
+}

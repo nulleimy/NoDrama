@@ -1,20 +1,20 @@
-import { QaScore } from "./qaTypes";
+import type { QaContext, QaScore } from "./qaTypes";
 import { CATEGORY_WEIGHTS } from "./weights";
 
-export function scoreReply(text: string, ctx: any): QaScore {
-  const weights = CATEGORY_WEIGHTS[ctx.category] || CATEGORY_WEIGHTS.default;
+export function scoreReply(text: string, ctx: QaContext): QaScore {
+  const weights = CATEGORY_WEIGHTS[ctx.category || "default"];
 
-  let clarity = text.length > 20 ? 1 : 0.4;
-  let honesty = /nevím|nestíhám|je to na mě|I can't|I won’t/.test(text) ? 1 : 0.6;
-  let dramaReduction = !/vždycky|nikdy|your fault/.test(text) ? 1 : 0.3;
-  let boundaryStrength = /nemůžu|nebude to možné|I can’t/.test(text) ? 1 : 0.5;
+  const clarity = text.length > 20 ? 1 : 0.4;
+  const honesty = /nevím|nestíhám|je to na mě|I can't|I won’t/.test(text) ? 1 : 0.6;
+  const dramaReduction = !/vždycky|nikdy|your fault/.test(text) ? 1 : 0.3;
+  const boundaryStrength = /nemůžu|nebude to možné|I can’t/.test(text) ? 1 : 0.5;
 
-  let languageNaturalness =
+  const languageNaturalness =
     ctx.language === "cs"
       ? /[a-zA-Z]{3,}/.test(text) ? 0.5 : 1
       : /[ěščřžýáíé]/.test(text) ? 0.5 : 1;
 
-  let total =
+  const total =
     (
       clarity * weights.clarity +
       honesty * weights.honesty +

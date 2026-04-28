@@ -8,6 +8,9 @@ export const analyticsEventNameSchema = z.enum([
   "paywall_shown",
   "paywall_closed",
   "credit_pack_clicked",
+  "credit_pack_purchase_started",
+  "credit_pack_purchase_success",
+  "credit_pack_purchase_failed",
   "pricing_cta_clicked",
 ]);
 

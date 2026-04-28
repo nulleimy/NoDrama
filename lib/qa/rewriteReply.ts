@@ -1,4 +1,6 @@
-export function rewriteReply(text: string, ctx: any): string {
+import type { QaContext } from "./qaTypes";
+
+export function rewriteReply(text: string, ctx: QaContext): string {
   if (text.length < 20) {
     return ctx.language === "cs"
       ? "Nestíhám to teď řešit, dám ti konkrétní update co nejdřív."

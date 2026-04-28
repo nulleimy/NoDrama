@@ -34,6 +34,10 @@ export const creditPacks: CreditPack[] = [
   },
 ];
 
+export function getCreditPackById(packId: string) {
+  return creditPacks.find((pack) => pack.id === packId) || null;
+}
+
 export const upgradeCopy = {
   headline: "Došly free odpovědi.",
   subheadline:

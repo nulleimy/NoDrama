@@ -1,5 +1,12 @@
 export type QaVerdict = "pass" | "rewrite" | "reject";
 
+export type QaCategory = "work" | "social" | "default";
+
+export type QaContext = {
+  language: "cs" | "en";
+  category?: QaCategory;
+};
+
 export type QaScore = {
   clarity: number;
   honesty: number;
@@ -13,3 +20,8 @@ export type QaScore = {
   verdict: QaVerdict;
   reasons: string[];
 };
+
+export type LlmJudgeResult = {
+  overrideVerdict: QaVerdict | null;
+  notes: string[];
+} | null;
