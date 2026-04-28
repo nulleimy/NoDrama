@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
-import { generateRequestSchema, type GenerateErrorResponse } from "@/lib/generateContract";
 import { consumeCredit } from "@/lib/credits/creditStore";
 import { getCreditUserId } from "@/lib/credits/userIdentity";
+import { generateRequestSchema, type GenerateErrorResponse } from "@/lib/generateContract";
 import { generatePhraseEngineReply } from "@/lib/language/phraseEngine";
-import { FREE_DAILY_LIMIT, getOrCreateAnonId, incrementDailyUsage, readDailyUsage } from "@/lib/usageLimit";
+import {
+  FREE_DAILY_LIMIT,
+  getOrCreateAnonId,
+  incrementDailyUsage,
+  readDailyUsage,
+} from "@/lib/usageLimit";
 
 export async function POST(request: Request) {
   try {
@@ -22,25 +27,36 @@ export async function POST(request: Request) {
       );
     }
 
+    const creditUserId = await getCreditUserId();
+    const creditResult = await consumeCredit(creditUserId);
+
     const anonId = await getOrCreateAnonId();
     const currentUsage = await readDailyUsage(anonId);
-    const remainingBeforeGenerate = Math.max(FREE_DAILY_LIMIT - currentUsage, 0);
 
-    if (remainingBeforeGenerate <= 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          code: "FREE_LIMIT_EXCEEDED",
-          message: "Free limit pro dnešek je vyčerpaný.",
-          remaining: 0,
-          limit: FREE_DAILY_LIMIT,
-        } satisfies GenerateErrorResponse,
-        { status: 429 }
-      );
+    if (!creditResult.consumed) {
+      const remainingBeforeGenerate = Math.max(FREE_DAILY_LIMIT - currentUsage, 0);
+
+      if (remainingBeforeGenerate <= 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: "FREE_LIMIT_EXCEEDED",
+            message: "Free limit pro dnešek je vyčerpaný.",
+            remaining: 0,
+            limit: FREE_DAILY_LIMIT,
+          } satisfies GenerateErrorResponse,
+          { status: 429 }
+        );
+      }
     }
 
-    const nextUsage = await incrementDailyUsage(anonId);
-    const remaining = Math.max(FREE_DAILY_LIMIT - nextUsage, 0);
+    const nextUsage = creditResult.consumed
+      ? currentUsage
+      : await incrementDailyUsage(anonId);
+
+    const remaining = creditResult.consumed
+      ? Math.max(FREE_DAILY_LIMIT - currentUsage, 0)
+      : Math.max(FREE_DAILY_LIMIT - nextUsage, 0);
 
     const response = generatePhraseEngineReply(parsed.data, remaining, FREE_DAILY_LIMIT);
 
