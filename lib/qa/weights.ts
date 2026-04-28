@@ -1,17 +1,9 @@
-export const CATEGORY_WEIGHTS: Record<string, any> = {
-  work: {
-    honesty: 1.2,
-    clarity: 1.2,
-    boundaryStrength: 1.0
-  },
-  social: {
-    dramaReduction: 1.3,
-    relationshipPreservation: 1.2
-  },
-  default: {
-    clarity: 1,
-    honesty: 1,
-    dramaReduction: 1,
-    boundaryStrength: 1
-  }
+import { QaWeights } from "./qaTypes";
+
+export const DEFAULT_WEIGHTS: QaWeights = {
+  clarity: 0.25,
+  honesty: 0.2,
+  dramaReduction: 0.2,
+  boundaryStrength: 0.2,
+  languageNaturalness: 0.15,
 };

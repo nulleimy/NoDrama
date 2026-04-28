@@ -1,50 +1,21 @@
 import { scoreReply } from "./scoreReply";
 import { rewriteReply } from "./rewriteReply";
-import { isHardReject } from "./rejectRules";
-import { llmJudge } from "./llmJudge";
+import { QaContext } from "./qaTypes";
 
-export async function qualityGate(text: string, ctx: any) {
-  const reject = isHardReject(text);
+export function qualityGate(text: string, ctx: QaContext) {
+  const score = scoreReply(text, ctx);
 
-  if (reject) {
+  if (score.total < 0.7) {
     return {
-      final: fallback(ctx),
-      verdict: "reject",
-      reason: reject
-    };
-  }
-
-  let score = scoreReply(text, ctx);
-
-  const llm = await llmJudge(text, ctx);
-  if (llm?.overrideVerdict) {
-    score.verdict = llm.overrideVerdict;
-  }
-
-  if (score.verdict === "pass") {
-    return { final: text, verdict: "pass", score };
-  }
-
-  if (score.verdict === "rewrite") {
-    const rewritten = rewriteReply(text, ctx);
-    const rescored = scoreReply(rewritten, ctx);
-
-    return {
-      final: rewritten,
-      verdict: "rewrite",
-      score: rescored
+      text: rewriteReply(text, ctx),
+      score,
+      passed: false,
     };
   }
 
   return {
-    final: fallback(ctx),
-    verdict: "reject",
-    score
+    text,
+    score,
+    passed: true,
   };
-}
-
-function fallback(ctx: any) {
-  return ctx.language === "cs"
-    ? "Teď na to nemám kapacitu, ozvu se později."
-    : "I don’t have capacity for this right now, I’ll follow up later.";
 }
