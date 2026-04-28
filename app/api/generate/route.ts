@@ -4,10 +4,10 @@ import { getCreditUserId } from "@/lib/credits/userIdentity";
 import { generateRequestSchema, type GenerateErrorResponse } from "@/lib/generateContract";
 import { generatePhraseEngineReply } from "@/lib/language/phraseEngine";
 import {
-  FREE_DAILY_LIMIT,
+  FREE_WEEKLY_LIMIT,
   getOrCreateAnonId,
-  incrementDailyUsage,
-  readDailyUsage,
+  incrementWeeklyUsage,
+  readWeeklyUsage,
 } from "@/lib/usageLimit";
 
 export async function POST(request: Request) {
@@ -31,19 +31,19 @@ export async function POST(request: Request) {
     const creditResult = await consumeCredit(creditUserId);
 
     const anonId = await getOrCreateAnonId();
-    const currentUsage = await readDailyUsage(anonId);
+    const currentUsage = await readWeeklyUsage(anonId);
 
     if (!creditResult.consumed) {
-      const remainingBeforeGenerate = Math.max(FREE_DAILY_LIMIT - currentUsage, 0);
+      const remainingBeforeGenerate = Math.max(FREE_WEEKLY_LIMIT - currentUsage, 0);
 
       if (remainingBeforeGenerate <= 0) {
         return NextResponse.json(
           {
             ok: false,
             code: "FREE_LIMIT_EXCEEDED",
-            message: "Free limit pro dnešek je vyčerpaný.",
+            message: "Tento týden máš vyčerpané 2 bezplatné NoDrama situace.",
             remaining: 0,
-            limit: FREE_DAILY_LIMIT,
+            limit: FREE_WEEKLY_LIMIT,
           } satisfies GenerateErrorResponse,
           { status: 429 }
         );
@@ -52,13 +52,13 @@ export async function POST(request: Request) {
 
     const nextUsage = creditResult.consumed
       ? currentUsage
-      : await incrementDailyUsage(anonId);
+      : await incrementWeeklyUsage(anonId);
 
     const remaining = creditResult.consumed
-      ? Math.max(FREE_DAILY_LIMIT - currentUsage, 0)
-      : Math.max(FREE_DAILY_LIMIT - nextUsage, 0);
+      ? Math.max(FREE_WEEKLY_LIMIT - currentUsage, 0)
+      : Math.max(FREE_WEEKLY_LIMIT - nextUsage, 0);
 
-    const response = generatePhraseEngineReply(parsed.data, remaining, FREE_DAILY_LIMIT);
+    const response = generatePhraseEngineReply(parsed.data, remaining, FREE_WEEKLY_LIMIT);
 
     return NextResponse.json(response);
   } catch (error) {

@@ -20,6 +20,6 @@ Bundle 6 should expand it toward roughly 3000 phrase candidates:
 
 ## Monetization hook
 
-The API still enforces the free daily server-side limit.
+The API still enforces the free weekly server-side limit.
 
-That means the product can test the value moment, daily limit, paywall trigger, and phrase engine quality without OpenAI cost.
+That means the product can test the value moment, weekly limit, paywall trigger, and phrase engine quality without OpenAI cost.

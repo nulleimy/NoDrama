@@ -12,7 +12,7 @@ Bundle 14 adds the first local credit system.
 - Adds `/api/credits/status`
 - Adds `/api/credits/add`
 - Shows credits on `/account`
-- Allows `/api/generate` to consume credits before using the free daily limit
+- Allows `/api/generate` to consume credits before using the free weekly limit
 
 ## Why
 

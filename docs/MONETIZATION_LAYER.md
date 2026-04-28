@@ -17,15 +17,17 @@ Bundle 8 adds the first monetization UX layer without payment provider integrati
 
 Subscription:
 
-- Starter: 79 Kč / month
-- Pro: 149 Kč / month
-- Power: 299 Kč / month
+- Mini: 79 Kč / month
+- Plus: 129 Kč / month
+- Pro: 249 Kč / month
 
 One-off packs:
 
-- 20 replies: 29 Kč
-- 100 replies: 99 Kč
-- 500 replies: 299 Kč
+- Emergency 1 situation: 39 Kč
+- 20 credits: 49 Kč
+- 75 credits: 149 Kč
+- 200 credits: 299 Kč
+- 500 credits: 599 Kč
 
 ## Why no Stripe yet
 

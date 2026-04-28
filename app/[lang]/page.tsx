@@ -101,8 +101,8 @@ export default function Home() {
           </p>
           <p className="text-base leading-7 text-neutral-600">
             {isCs
-              ? "Free plán je schválně přísný: 2 generace denně. Kdo má hodnotu, narazí na paywall rychle. Kdo ji nemá, nespálí nám API budget."
-              : "The free plan is intentionally strict: 2 generations per day. People who feel the value reach the paywall quickly. People who do not will not burn API budget."}
+              ? "Free plán je schválně přísný: 2 situace týdně. Ochutnáš hodnotu, ale na pravidelné použití narazíš na paywall ve správný moment."
+              : "The free plan is intentionally strict: 2 situations per week. You get a taste of value, but regular use hits the paywall at the right time."}
           </p>
         </div>
       </section>
@@ -119,8 +119,8 @@ export default function Home() {
           </h2>
           <p className="mt-4 text-lg leading-8 text-neutral-600">
             {isCs
-              ? "AI náklady jsou variabilní, takže pricing stojí na kreditech a fair-use limitech. Hlavní plán je Pro za 149 Kč měsíčně."
-              : "AI costs are variable, so pricing is based on credits and fair-use limits. The main plan is Pro for 149 CZK per month."}
+              ? "AI náklady jsou variabilní, takže pricing stojí na kreditech a fair-use limitech. Doporučený plán je Plus za 129 Kč měsíčně."
+              : "AI costs are variable, so pricing is based on credits and fair-use limits. The recommended plan is Plus for 129 CZK per month."}
           </p>
         </div>
 
@@ -137,8 +137,8 @@ export default function Home() {
           </h3>
           <p className="mt-3 max-w-2xl text-base leading-7 text-neutral-600">
             {isCs
-              ? "Mikro balíčky jsou určené pro impulsní nákup přesně ve chvíli, kdy dojdou free odpovědi."
-              : "Micro packs are made for impulse purchases exactly when free replies run out."}
+              ? "Balíčky jsou určené pro akutní chvíle přesně ve chvíli, kdy dojdou free týdenní situace."
+              : "Packs are designed for urgent moments exactly when the weekly free situations run out."}
           </p>
           <div className="mt-6">
             <CreditPacks />

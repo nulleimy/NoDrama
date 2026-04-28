@@ -2,7 +2,7 @@ import { pricingPlans } from "@/lib/pricing";
 
 export function PricingCards() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
       {pricingPlans.map((plan) => (
         <article
           key={plan.name}
@@ -62,7 +62,7 @@ export function PricingCards() {
             ].join(" ")}
             type="button"
           >
-            {plan.name === "Free" ? "Vyzkoušet zdarma" : "Vybrat plán"}
+            {plan.name === "Free" ? "Vyzkoušet zdarma" : plan.name === "Emergency" ? "Koupit krizově" : "Vybrat plán"}
           </button>
         </article>
       ))}

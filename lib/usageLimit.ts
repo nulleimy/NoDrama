@@ -1,17 +1,21 @@
 import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
 
-export const FREE_DAILY_LIMIT = 2;
+export const FREE_WEEKLY_LIMIT = 2;
 
 const USER_COOKIE = "nodrama_anon_id";
-const USAGE_COOKIE_PREFIX = "nodrama_usage";
+const USAGE_COOKIE_PREFIX = "nodrama_usage_week";
 
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+function weekKey() {
+  const now = new Date();
+  const day = now.getUTCDay() || 7;
+  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  monday.setUTCDate(monday.getUTCDate() - day + 1);
+  return monday.toISOString().slice(0, 10);
 }
 
 function usageCookieName(anonId: string) {
-  return `${USAGE_COOKIE_PREFIX}_${todayKey()}_${anonId}`;
+  return `${USAGE_COOKIE_PREFIX}_${weekKey()}_${anonId}`;
 }
 
 export async function getOrCreateAnonId() {
@@ -35,7 +39,7 @@ export async function getOrCreateAnonId() {
   return anonId;
 }
 
-export async function readDailyUsage(anonId: string) {
+export async function readWeeklyUsage(anonId: string) {
   const cookieStore = await cookies();
   const cookieName = usageCookieName(anonId);
   const value = cookieStore.get(cookieName)?.value;
@@ -43,10 +47,10 @@ export async function readDailyUsage(anonId: string) {
   return value ? Number(value) || 0 : 0;
 }
 
-export async function incrementDailyUsage(anonId: string) {
+export async function incrementWeeklyUsage(anonId: string) {
   const cookieStore = await cookies();
   const cookieName = usageCookieName(anonId);
-  const current = await readDailyUsage(anonId);
+  const current = await readWeeklyUsage(anonId);
   const next = current + 1;
 
   cookieStore.set(cookieName, String(next), {
@@ -54,7 +58,7 @@ export async function incrementDailyUsage(anonId: string) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24,
+    maxAge: 60 * 60 * 24 * 8,
   });
 
   return next;
