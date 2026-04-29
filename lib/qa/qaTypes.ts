@@ -1,15 +1,28 @@
-export type QaVerdict = "pass" | "rewrite" | "reject";
+export type QaContext = {
+  tone?: string;
+  relationship?: string;
+  channel?: string;
+  category?: string;
+};
+
+export type QaWeights = {
+  clarity: number;
+  honesty: number;
+  dramaReduction: number;
+  boundaryStrength: number;
+  languageNaturalness: number;
+};
 
 export type QaScore = {
   clarity: number;
   honesty: number;
   dramaReduction: number;
-  relationshipPreservation: number;
   boundaryStrength: number;
-  toneMatch: number;
-  channelMatch: number;
   languageNaturalness: number;
   total: number;
-  verdict: QaVerdict;
-  reasons: string[];
+};
+
+export type LlmJudgeResult = {
+  score: number;
+  verdict: "pass" | "fail";
 };

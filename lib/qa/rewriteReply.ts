@@ -1,9 +1,9 @@
-export function rewriteReply(text: string, ctx: any): string {
-  if (text.length < 20) {
-    return ctx.language === "cs"
-      ? "Nestíhám to teď řešit, dám ti konkrétní update co nejdřív."
-      : "I can't handle this right now, I’ll send a concrete update shortly.";
-  }
+import { QaContext } from "./qaTypes";
 
+export function rewriteReply(text: string, ctx: QaContext): string {
+  void ctx;
+  if (text.length < 10) {
+    return text + " — můžu to víc rozvést.";
+  }
   return text;
 }
