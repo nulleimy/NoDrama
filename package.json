@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verify": "bash scripts/verify.sh",
+    "verify:nodrama": "node scripts/verify-nodrama-enterprise.mjs"
   },
   "dependencies": {
     "next": "^16.2.4",
