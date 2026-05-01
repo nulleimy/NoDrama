@@ -3,6 +3,10 @@ import { mapUiChannelToReplyChannel } from "@/lib/language/channelMap";
 import { selectPhrases } from "@/lib/language/phraseSelector";
 import { matchSituationCategory } from "@/lib/language/situationMatcher";
 import { mapUiToneToReplyStyle } from "@/lib/language/toneMap";
+import {
+  createContentDepthRuntimeContext,
+  type ContentDepthRuntimeContext,
+} from "@/lib/nodrama/contentDepthRuntime";
 
 function expandReply(base: string, index: number) {
   if (index === 0) return base;
@@ -48,11 +52,13 @@ export function generatePhraseEngineReply(
     blockedReason?: string;
     recommendedId?: string;
     scores: { id: string; score: number; reasons: string[] }[];
+    contentDepth: ContentDepthRuntimeContext;
   };
 } {
   const match = matchSituationCategory(input.situation);
   const style = mapUiToneToReplyStyle(input.tone);
   const channel = mapUiChannelToReplyChannel(input.channel);
+  const contentDepth = createContentDepthRuntimeContext(input, match.category);
 
   const selection = selectPhrases({
     intent: match.category.intent,
@@ -97,6 +103,7 @@ export function generatePhraseEngineReply(
         score: item.score,
         reasons: item.reasons,
       })),
+      contentDepth,
     },
   };
 }

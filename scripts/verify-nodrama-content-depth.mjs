@@ -24,6 +24,8 @@ const files = {
   safety: "lib/nodrama/safetyLayers.ts",
   tones: "lib/nodrama/tonePresets.ts",
   audit: "lib/nodrama/auditDebug.ts",
+  runtime: "lib/nodrama/contentDepthRuntime.ts",
+  engine: "lib/language/phraseEngine.ts",
   docs: "docs/CONTENT_DEPTH_V2_FOUNDATION.md",
 };
 
@@ -102,6 +104,26 @@ for (const safetyRef of promptSafetyRefs) {
 
 if (!sources.audit.includes("internalOnly: true")) {
   fail("Audit debug output is not marked internal-only.");
+}
+
+for (const requiredRuntimeUse of [
+  "promptRegistry",
+  "scenarioTemplates",
+  "safetyLayers",
+  "lockedTonePresets",
+  "createContentDepthAuditDebug",
+]) {
+  if (!sources.runtime.includes(requiredRuntimeUse)) {
+    fail(`Content-depth runtime does not use ${requiredRuntimeUse}.`);
+  }
+}
+
+if (!sources.engine.includes("createContentDepthRuntimeContext")) {
+  fail("Phrase engine is not wired to the content-depth runtime.");
+}
+
+if (!sources.engine.includes("contentDepth")) {
+  fail("Phrase engine meta does not include content-depth metadata.");
 }
 
 if (!sources.docs.includes("No public API contract changes")) {
