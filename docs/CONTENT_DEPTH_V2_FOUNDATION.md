@@ -17,19 +17,22 @@ Scenario Intake
 -> Review/Audit
 ```
 
-The new files in `lib/nodrama/` prepare the middle of that flow:
+The files in `lib/nodrama/` prepare and wire the middle of that flow:
 
 - `promptRegistry.ts` defines typed prompt profiles and the output contract each profile is expected to support.
 - `scenarioTemplates.ts` defines representative scenario templates with category, intent, relationship, tone, channel and safety notes.
 - `safetyLayers.ts` defines declarative safety rules for truthfulness, boundary-setting, conflict reduction, anti-manipulation and non-clinical support.
 - `tonePresets.ts` defines metadata for the locked internal 8-tone model.
 - `auditDebug.ts` defines a deterministic internal debug shape for selected scenario, tone, relationship, channel, strategy and safety decisions.
+- `contentDepthRuntime.ts` maps the existing phrase-engine inputs to a scenario template, prompt profile, tone preset, safety decisions and audit/debug metadata.
+
+The existing phrase engine calls the runtime bridge after matching the situation category. The selected content-depth context is attached under the existing response `meta.contentDepth` object.
 
 ## Public contract impact
 
 No public API contract changes.
 
-The existing `app/api/generate` request and response shapes remain unchanged. The new content-depth registry is internal and can be wired into future generator or QA work after review.
+The existing `app/api/generate` request and response shapes remain unchanged. Content-depth data is internal generation metadata attached only under the existing optional `meta` object. No request fields, top-level response fields, output variant names, billing behavior, auth behavior or storage behavior change.
 
 ## Safety model
 
@@ -67,5 +70,7 @@ Each tone has CZ/EN labels, usage guidance, risk notes and blocked contexts. Thi
 - Scenario templates reference existing prompt profiles and tones.
 - Prompt profiles reference existing safety layers.
 - The internal audit shape remains marked internal-only.
+- The phrase engine is wired to the content-depth runtime.
+- The content-depth runtime uses the prompt registry, scenario templates, safety layers, tone presets and audit/debug helper.
 
 It is wired into `npm run verify` through `scripts/verify.sh`.
