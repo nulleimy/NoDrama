@@ -42,6 +42,11 @@ if [ -f scripts/verify-admin-analytics-security.mjs ]; then
   node scripts/verify-admin-analytics-security.mjs
 fi
 
+if [ -f scripts/verify-nodrama-content-depth.mjs ]; then
+  echo "==> NoDrama content-depth v2 foundation"
+  node scripts/verify-nodrama-content-depth.mjs
+fi
+
 echo "==> Lint"
 npm run lint
 

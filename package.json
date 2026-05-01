@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "verify": "bash scripts/verify.sh",
+    "verify:content-depth": "node scripts/verify-nodrama-content-depth.mjs",
     "verify:nodrama": "node scripts/verify-nodrama-enterprise.mjs"
   },
   "dependencies": {
