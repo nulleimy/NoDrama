@@ -24,7 +24,7 @@ export const situationCategories: SituationCategory[] = [
     allowedStyles: ["neutral", "casual", "formal", "firm", "funny", "absurd"],
     recommendedChannels: ["sms", "whatsapp"],
     keywordsCs: ["nechci", "jít", "ven"],
-    keywordsEn: ["social decline going out"],
+    keywordsEn: ["social decline going out", "going out", "do not want to go out", "don't want to go out"],
     avoid: ["fake emergency", "overexplaining", "manipulation"],
   },
   {
@@ -89,7 +89,7 @@ export const situationCategories: SituationCategory[] = [
     allowedStyles: ["neutral", "casual", "formal", "firm", "funny", "absurd"],
     recommendedChannels: ["sms", "whatsapp"],
     keywordsCs: ["přijdu", "pozdě"],
-    keywordsEn: ["social running late"],
+    keywordsEn: ["social running late", "running late", "arrive late", "late"],
     avoid: ["fake emergency", "overexplaining", "manipulation"],
   },
   {
@@ -141,7 +141,7 @@ export const situationCategories: SituationCategory[] = [
     allowedStyles: ["neutral", "casual", "formal", "firm", "funny", "absurd"],
     recommendedChannels: ["sms", "whatsapp"],
     keywordsCs: ["nechci", "vysvětlovat", "důvod"],
-    keywordsEn: ["social no explanation"],
+    keywordsEn: ["social no explanation", "no explanation", "do not want to explain", "don't want to explain"],
     avoid: ["fake emergency", "overexplaining", "manipulation"],
   },
   {
@@ -310,7 +310,7 @@ export const situationCategories: SituationCategory[] = [
     allowedStyles: ["neutral", "formal", "firm"],
     recommendedChannels: ["email", "slack"],
     keywordsCs: ["nechci", "další", "úkol"],
-    keywordsEn: ["work decline extra task"],
+    keywordsEn: ["work decline extra task", "extra task", "additional task", "take another task"],
     avoid: ["fake emergency", "overexplaining", "manipulation"],
   },
   {
@@ -375,7 +375,7 @@ export const situationCategories: SituationCategory[] = [
     allowedStyles: ["neutral", "formal", "firm"],
     recommendedChannels: ["email", "slack"],
     keywordsCs: ["potřebuji", "více", "času"],
-    keywordsEn: ["work need more time"],
+    keywordsEn: ["work need more time", "need more time", "more time", "not ready yet"],
     avoid: ["fake emergency", "overexplaining", "manipulation"],
   },
   {
@@ -621,8 +621,8 @@ export const situationCategories: SituationCategory[] = [
     defaultStyle: "formal",
     allowedStyles: ["neutral", "formal", "firm"],
     recommendedChannels: ["email", "slack"],
-    keywordsCs: ["omluva", "za", "delay"],
-    keywordsEn: ["business apologize delay"],
+    keywordsCs: ["omluva", "za", "delay", "omluva za delay", "zdržení", "vymlouvat"],
+    keywordsEn: ["business apologize delay", "apologize for delay", "sorry for delay", "client delay"],
     avoid: ["fake emergency", "overexplaining", "manipulation"],
   },
   {

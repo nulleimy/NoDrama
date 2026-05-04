@@ -19,6 +19,7 @@ for (const file of requiredFiles) {
 
 const selector = readFileSync("lib/language/phraseSelector.ts", "utf8");
 const engine = readFileSync("lib/language/phraseEngine.ts", "utf8");
+const composer = readFileSync("lib/language/replyComposer.ts", "utf8");
 const ui = readFileSync("components/InteractiveGenerator.tsx", "utf8");
 
 if (!selector.includes("rankPhrases")) {
@@ -37,12 +38,16 @@ if (!ui.includes("Best pick")) {
   fail("UI does not show Best pick label.");
 }
 
-if (!engine.includes("makeFirmReply")) {
+if (!engine.includes("composeReplyVariants")) {
+  fail("Phrase engine does not use the deterministic reply composer.");
+}
+
+if (!composer.includes("isFirmContext")) {
   fail("Phrase engine does not create a distinct firm reply.");
 }
 
-if (!engine.includes("`${normalized} Dávám vědět rovnou")) {
-  fail("Firm reply should preserve selected phrase instead of replacing it.");
+if (!composer.includes("selectedPhrases") || !composer.includes("phraseFallback")) {
+  fail("Reply composer should preserve phrase selector fallback behavior.");
 }
 
 console.log("✅ Phrase quality engine verified");

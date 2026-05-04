@@ -11,11 +11,38 @@ function normalize(input: string) {
   return input.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
 }
 
+const lowSignalKeywords = new Set([
+  "a",
+  "an",
+  "at",
+  "for",
+  "in",
+  "ke",
+  "na",
+  "nebo",
+  "of",
+  "se",
+  "s",
+  "the",
+  "to",
+  "u",
+  "v",
+  "za",
+]);
+
+function isUsefulKeyword(keyword: string) {
+  const normalized = normalize(keyword).trim();
+
+  if (normalized.includes(" ")) return true;
+  if (normalized.length <= 2) return false;
+  return !lowSignalKeywords.has(normalized);
+}
+
 export function matchSituationCategory(input: string): SituationMatch {
   const normalizedInput = normalize(input);
 
   const matches = situationCategories.map((category) => {
-    const keywords = [...category.keywordsCs, ...category.keywordsEn];
+    const keywords = [...category.keywordsCs, ...category.keywordsEn].filter(isUsefulKeyword);
     const matchedKeywords = keywords.filter((keyword) =>
       normalizedInput.includes(normalize(keyword))
     );
