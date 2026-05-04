@@ -18,6 +18,7 @@ import { createNormalizedGenerationContext } from "@/lib/nodrama/selectorMixing.
 type NormalizedGenerationContext = {
   situation: {
     scenarioCategory: string;
+    intent: string;
   };
   selectors: {
     tone: { id: string };
@@ -60,7 +61,7 @@ export function createContentDepthRuntimeContext(
   ) as NormalizedGenerationContext;
   const normalized = {
     category: normalizeScenarioCategory(selectorMixing.situation.scenarioCategory),
-    intent: normalizeIntent(category.intent),
+    intent: normalizeIntent(selectorMixing.situation.intent),
     relationship: mapRelationship(selectorMixing.selectors.relationship.id),
     tone: mapTone(selectorMixing.selectors.tone.id),
     channel: mapChannel(selectorMixing.selectors.channel.id),
@@ -135,12 +136,21 @@ function normalizeScenarioCategory(
   return "social_plans";
 }
 
-function normalizeIntent(intent: SituationCategory["intent"]): ContentDepthIntent {
+function normalizeIntent(intent: string): ContentDepthIntent {
   if (intent === "soft_exit" || intent === "follow_up") return "clarify";
   if (intent === "refuse_cost" || intent === "refuse_scope") return "decline";
   if (intent === "not_available") return "delay";
   if (intent === "apology") return "repair";
-  return intent;
+  if (intent === "negotiate") return "clarify";
+  if (
+    ["cancel", "decline", "delay", "reschedule", "boundary", "repair", "clarify"].includes(
+      intent
+    )
+  ) {
+    return intent as ContentDepthIntent;
+  }
+
+  return "decline";
 }
 
 function mapRelationship(

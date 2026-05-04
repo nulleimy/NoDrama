@@ -2,10 +2,14 @@ import type { GenerateRequest } from "@/lib/generateContract";
 import type { LanguageCode, SituationCategory } from "@/lib/language/phraseTypes";
 
 export type SelectorMixingSource = "explicit" | "legacy" | "default";
+export type SelectorMixingConfidence = "high" | "medium" | "low";
 
 export type NormalizedSelector = {
   id: string;
   source: SelectorMixingSource;
+  requestedId?: string;
+  adjusted?: boolean;
+  adjustmentReason?: string;
 };
 
 export type MatchedMicroSituation = {
@@ -17,13 +21,31 @@ export type MatchedMicroSituation = {
   intent: string;
   riskLevel: string;
   pressureLevel: string;
-  score: number;
+  overlap: number;
+  confidence: SelectorMixingConfidence;
   reasons: string[];
   safetyNotes: string[];
   blockedSafetyPolicyIds: string[];
 };
 
 export type NormalizedGenerationContext = {
+  userText: string;
+  selected: {
+    tone: NormalizedSelector;
+    relationship: NormalizedSelector;
+    channel: NormalizedSelector;
+    strategy: NormalizedSelector;
+  };
+  inferredLanguage: LanguageCode;
+  inferredDomain: string;
+  inferredScenarioFamily: string;
+  inferredRisk: string;
+  inferredPressure: string;
+  matchedMicroSituation: MatchedMicroSituation | null;
+  microSituationCandidates: MatchedMicroSituation[];
+  confidence: SelectorMixingConfidence;
+  safetyNotes: string[];
+  safetyWarnings: string[];
   situation: {
     text: string;
     language: LanguageCode;
@@ -38,10 +60,10 @@ export type NormalizedGenerationContext = {
     channel: NormalizedSelector;
     strategy: NormalizedSelector;
   };
-  matchedMicroSituation: MatchedMicroSituation | null;
   compatibility: {
     score: number;
     maxScore: number;
+    confidence: SelectorMixingConfidence;
     reasons: string[];
     warnings: string[];
   };
@@ -50,6 +72,7 @@ export type NormalizedGenerationContext = {
     pressureLevel: string;
     safetyPolicyIds: string[];
     notes: string[];
+    warnings: string[];
   };
 };
 

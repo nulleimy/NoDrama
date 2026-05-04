@@ -10,7 +10,14 @@ import type {
 import type { ContentDepthRuntimeContext } from "@/lib/nodrama/contentDepthRuntime";
 import { mapSelectorStrategyToIntent } from "@/lib/nodrama/selectorMixing.mjs";
 
-type ReplyFamily = "repair" | "delay" | "decline" | "boundary" | "work";
+type ReplyFamily =
+  | "repair"
+  | "delay"
+  | "decline"
+  | "boundary"
+  | "work"
+  | "negotiate"
+  | "clarify";
 
 type ComposerInput = {
   request: GenerateRequest;
@@ -114,6 +121,8 @@ function resolveReplyFamily(
   intent: ReplyIntent,
   domain: SituationCategory["domain"]
 ): ReplyFamily {
+  if (intent === "negotiate") return "negotiate";
+  if (intent === "clarify" || intent === "follow_up") return "clarify";
   if (domain === "work" || domain === "business") return "work";
   if (intent === "apology") return "repair";
   if (intent === "delay" || intent === "reschedule" || intent === "not_available") {
@@ -144,6 +153,8 @@ function composeCzech(
 ) {
   if (family === "work") return composeCzechWork(input, isFormal, isFirm);
   if (family === "repair") return composeCzechRepair(isFormal, isFirm);
+  if (family === "negotiate") return composeCzechNegotiate(input, isFormal, isFirm);
+  if (family === "clarify") return composeCzechClarify(input, isFormal, isFirm);
   if (family === "delay") return composeCzechDelay(isFormal, isFirm);
   if (family === "boundary") return composeCzechBoundary(isFormal, isFirm);
   return composeCzechDecline(isFormal, isFirm);
@@ -157,6 +168,10 @@ function composeEnglish(
 ) {
   if (family === "work") return composeEnglishWork(input, isFormal, isFirm);
   if (family === "repair") return composeEnglishRepair(isFormal, isFirm);
+  if (family === "negotiate") {
+    return composeEnglishNegotiate(input, isFormal, isFirm);
+  }
+  if (family === "clarify") return composeEnglishClarify(input, isFormal, isFirm);
   if (family === "delay") return composeEnglishDelay(isFormal, isFirm);
   if (family === "boundary") return composeEnglishBoundary(isFormal, isFirm);
   return composeEnglishDecline(isFormal, isFirm);
@@ -263,6 +278,96 @@ function composeEnglishRepair(isFormal: boolean, isFirm: boolean) {
       : "I’m taking responsibility and will send a clear next step so it’s clear how I’ll fix it.",
     followUpReply:
       "If they ask for more detail: “I understand. I don’t want to over-explain; the important part now is the fix.”",
+  };
+}
+
+function composeCzechNegotiate(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  const isClient = input.contentDepth.selectorMixing.selectors.relationship.id === "client";
+
+  return {
+    shortReply: isClient
+      ? "V tomhle rozsahu to můžu převzít po úpravě zadání, termínu nebo ceny."
+      : "Tohle zvládnu, pokud upravíme rozsah, termín nebo priority.",
+    naturalReply: isFormal
+      ? "Rád/a to posunu dál, ale v aktuálním rozsahu potřebujeme upravit zadání, termín nebo rozpočet. Navrhuji si nejdřív potvrdit, co je priorita."
+      : "Můžu s tím pomoct, jen potřebuju upravit rozsah, termín nebo priority. Pojďme si potvrdit, co je teď nejdůležitější.",
+    strongReply: isFirm
+      ? "V aktuálních podmínkách to nepotvrdím. Pokud se má pokračovat, potřebujeme změnit rozsah, termín nebo rozpočet."
+      : "Nechci potvrdit něco, co by nebylo realistické. Potřebujeme upravit podmínky a pak se můžu jasně zavázat.",
+    followUpReply:
+      "Kdyby chtěli rozhodnutí hned: „Rozumím, ale bez potvrzeného rozsahu nebo termínu bych slíbil/a něco nereálného.“",
+  };
+}
+
+function composeEnglishNegotiate(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  const isClient = input.contentDepth.selectorMixing.selectors.relationship.id === "client";
+
+  return {
+    shortReply: isClient
+      ? "I can take this on if we adjust the scope, timing, or budget."
+      : "I can do this if we adjust the scope, timing, or priorities.",
+    naturalReply: isFormal
+      ? "I’m happy to move this forward, but the current scope needs an adjustment to the brief, timing, or budget. I suggest we confirm the priority first."
+      : "I can help with this, but we need to adjust the scope, timing, or priorities first. Let’s confirm what matters most right now.",
+    strongReply: isFirm
+      ? "I can’t confirm this under the current terms. If it should move forward, the scope, timing, or budget needs to change."
+      : "I don’t want to agree to something unrealistic. We need to adjust the terms first, then I can commit clearly.",
+    followUpReply:
+      "If they want an immediate yes: “I understand, but without confirmed scope or timing I’d be promising something unrealistic.”",
+  };
+}
+
+function composeCzechClarify(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  const isFaceToFace =
+    input.contentDepth.selectorMixing.selectors.channel.id === "face_to_face";
+
+  return {
+    shortReply: isFaceToFace
+      ? "Chci si to nejdřív ujasnit, než na to odpovím."
+      : "Můžeš mi prosím upřesnit, co ode mě teď potřebuješ?",
+    naturalReply: isFormal
+      ? "Než na to odpovím, potřebuji si ujasnit očekávání. Můžete prosím potvrdit, co přesně ode mě teď potřebujete?"
+      : "Než odpovím, chci si ujasnit, co ode mě teď potřebuješ. Můžeš to prosím říct konkrétněji?",
+    strongReply: isFirm
+      ? "Bez jasného očekávání na to teď nebudu přikyvovat. Nejdřív si potřebuju ujasnit, co přesně je požadavek."
+      : "Nechci si domýšlet, co tím myslíš. Nejdřív si to prosím ujasněme.",
+    followUpReply:
+      "Kdyby přišel tlak: „Rozumím, ale nechci reagovat na domněnku. Potřebuji jasně vědět, o co jde.“",
+  };
+}
+
+function composeEnglishClarify(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  const isFaceToFace =
+    input.contentDepth.selectorMixing.selectors.channel.id === "face_to_face";
+
+  return {
+    shortReply: isFaceToFace
+      ? "I want to clarify this before I answer."
+      : "Can you clarify what you need from me right now?",
+    naturalReply: isFormal
+      ? "Before I answer, I need to clarify the expectation. Could you confirm exactly what you need from me right now?"
+      : "Before I answer, I want to understand what you need from me. Can you be a bit more specific?",
+    strongReply: isFirm
+      ? "I’m not going to agree without a clear expectation. I need to understand the request first."
+      : "I don’t want to guess what you mean. Let’s clarify it first.",
+    followUpReply:
+      "If there is pressure: “I understand, but I don’t want to respond to an assumption. I need the request to be clear first.”",
   };
 }
 
