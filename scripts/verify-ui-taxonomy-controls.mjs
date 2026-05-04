@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-
 import {
   publicGeneratorTaxonomyControls,
   publicGeneratorTaxonomySourceIds,
@@ -19,13 +17,51 @@ function uniqueIds(items) {
   return new Set(items.map((item) => item.id));
 }
 
-function extractLockedToneIds() {
-  const source = readFileSync("lib/nodrama/tonePresets.ts", "utf8");
-  return [...source.matchAll(/id:\s*"([^"]+)"/g)].map((match) => match[1]);
-}
+const expectedIdsByGroup = {
+  tone: [
+    "neutral",
+    "soft",
+    "assertive",
+    "formal",
+    "apologetic",
+    "warm",
+    "concise",
+    "playful",
+  ],
+  relationship: [
+    "authority",
+    "peer",
+    "client",
+    "friend",
+    "close_friend",
+    "partner",
+    "family",
+    "stranger_public",
+  ],
+  channel: [
+    "messenger_1to1",
+    "group_chat",
+    "email",
+    "work_chat",
+    "professional_dm",
+    "social_dm",
+    "voice_call",
+    "face_to_face",
+  ],
+  strategy: [
+    "delay",
+    "soft_decline",
+    "hard_boundary",
+    "redirect",
+    "repair",
+    "exit",
+    "negotiate",
+    "clarify",
+  ],
+};
 
 const lockedIdsByGroup = {
-  tone: new Set(extractLockedToneIds()),
+  tone: new Set(expectedIdsByGroup.tone),
   relationship: uniqueIds(lockedRelationshipTaxonomyV2),
   channel: uniqueIds(lockedChannelTaxonomyV2),
   strategy: uniqueIds(lockedStrategyTaxonomyV2),
@@ -38,6 +74,12 @@ const allowedLegacyValuesByGroup = {
   strategy: lockedIdsByGroup.strategy,
 };
 
+const requiredLabels = {
+  tone: {
+    playful: { cs: "Vtipný / odlehčený", en: "Light / playful" },
+  },
+};
+
 for (const group of ["tone", "relationship", "channel", "strategy"]) {
   const options = publicGeneratorTaxonomyControls[group];
 
@@ -46,9 +88,14 @@ for (const group of ["tone", "relationship", "channel", "strategy"]) {
   }
 
   const optionIds = uniqueIds(options);
+  const expectedIds = expectedIdsByGroup[group];
 
   if (optionIds.size !== 8) {
     fail(`${group} selector contains duplicate IDs.`);
+  }
+
+  if (options.map((option) => option.id).join(",") !== expectedIds.join(",")) {
+    fail(`${group} selector IDs do not match the final taxonomy order.`);
   }
 
   const sourceIds = new Set(publicGeneratorTaxonomySourceIds[group]);
@@ -68,6 +115,15 @@ for (const group of ["tone", "relationship", "channel", "strategy"]) {
 
     if (!option.label?.cs || !option.label?.en) {
       fail(`${group} option must include CZ/EN labels: ${option.id}`);
+    }
+
+    const requiredLabel = requiredLabels[group]?.[option.id];
+
+    if (
+      requiredLabel &&
+      (option.label.cs !== requiredLabel.cs || option.label.en !== requiredLabel.en)
+    ) {
+      fail(`${group} option has an incorrect final label: ${option.id}`);
     }
 
     if (!allowedLegacyValuesByGroup[group].has(option.legacyValue)) {

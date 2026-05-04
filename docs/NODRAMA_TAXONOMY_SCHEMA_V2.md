@@ -2,12 +2,14 @@
 
 ## Scope
 
-This bundle locks the NoDrama Enterprise v2 taxonomy surface for channels,
-relationships and response strategies. It also defines the canonical
-micro-situation dataset record shape used to scale from broad categories to
-specific generation fixtures.
+This bundle locks the NoDrama Enterprise v2 taxonomy surface for public UI
+tones, channels, relationships and response strategies. It also defines the
+canonical micro-situation dataset record shape used to scale from broad
+categories to specific generation fixtures.
 
-Public contract impact: No public API contract changes.
+Public contract impact: API request ID compatibility is expanded. The final UI
+IDs are canonical, while old public generator IDs and legacy display values
+remain accepted for existing generate requests.
 
 Out of scope:
 
@@ -25,48 +27,78 @@ Each locked taxonomy must stay at exactly 8 IDs once exposed in the public
 generator controls. IDs are stable, lowercase and machine-facing. Public control
 labels are localized in Czech and English without changing the ID.
 
+### Tone
+
+Tone IDs use the final public generator taxonomy:
+
+- `neutral`
+- `soft`
+- `assertive`
+- `formal`
+- `apologetic`
+- `warm`
+- `concise`
+- `playful`
+
+The playful tone must use internal ID `playful`, not `funny`. Its labels are
+`Vtipný / odlehčený` in Czech and `Light / playful` in English.
+
+Legacy tone IDs such as `kind`, `direct`, `light`, `firm`, `calm` and `brief`
+remain accepted by the generate request contract for backward compatibility.
+
 ### Channel
 
-The channel IDs align with the existing generator/content-depth contract:
+The channel IDs use the final public generator taxonomy:
 
-- `whatsapp`
-- `sms`
+- `messenger_1to1`
+- `group_chat`
 - `email`
-- `slack`
-- `messenger`
-- `instagram_dm`
-- `signal`
-- `teams`
+- `work_chat`
+- `professional_dm`
+- `social_dm`
+- `voice_call`
+- `face_to_face`
+
+Legacy channel IDs such as `whatsapp`, `sms`, `slack`, `messenger`,
+`instagram_dm`, `signal` and `teams` remain accepted for old requests and seed
+data validation through explicit legacy mappings.
 
 ### Relationship
 
-The first four IDs align with the current public generator relationship choices
-through the content-depth normalization layer:
+Relationship IDs use the final public generator taxonomy:
 
+- `authority`
+- `peer`
+- `client`
 - `friend`
-- `work`
-- `family`
-- `dating`
-- `service`
-- `group`
+- `close_friend`
 - `partner`
-- `acquaintance`
+- `family`
+- `stranger_public`
+
+Legacy relationship IDs such as `work`, `dating`, `service`, `group` and
+`acquaintance` remain accepted for old requests and seed data validation through
+explicit legacy mappings.
 
 ### Strategy
 
 Strategy IDs describe generation behavior without adding new output contracts:
 
-- `truthful_boundary`
-- `direct_boundary`
-- `repair_accountability`
-- `delay_update`
-- `decline_capacity`
-- `clarify_intent`
-- `reschedule_option`
-- `brief_exit`
+- `delay`
+- `soft_decline`
+- `hard_boundary`
+- `redirect`
+- `repair`
+- `exit`
+- `negotiate`
+- `clarify`
 
 Every strategy maps to an existing prompt profile. This keeps the dataset
 structured while preserving the current deterministic generator behavior.
+Legacy strategy IDs such as `truthful_boundary`, `direct_boundary`,
+`repair_accountability`, `delay_update`, `decline_capacity`, `clarify_intent`,
+`reschedule_option` and `brief_exit` remain accepted for old requests and seed
+data validation through explicit legacy mappings.
 
 ## Compact Enums
 
@@ -114,6 +146,10 @@ The seed v1 dataset lives in `lib/nodrama/microSituationSeed.v2.json`.
 Validation lives in `lib/nodrama/taxonomySchemaV2.mjs` and is exercised by
 `scripts/verify-taxonomy-schema-v2.mjs` and
 `scripts/verify-micro-situation-seed-v1.mjs`.
+
+Seed v1 may still contain old public taxonomy IDs. Validators accept those
+references only through explicit `legacyIds` on the final locked taxonomy items.
+Future seed batches should use the final canonical IDs directly.
 
 ## Seed Dataset V1
 
