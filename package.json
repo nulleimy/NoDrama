@@ -9,6 +9,7 @@
     "lint": "eslint",
     "verify": "bash scripts/verify.sh",
     "verify:content-depth": "node scripts/verify-nodrama-content-depth.mjs",
+    "verify:taxonomy-schema-v2": "node scripts/verify-taxonomy-schema-v2.mjs",
     "verify:nodrama": "node scripts/verify-nodrama-enterprise.mjs"
   },
   "dependencies": {

@@ -1,0 +1,105 @@
+[
+  {
+    "id": "msv2-social-cancel-plan-friend-whatsapp",
+    "title": "Cancel a friend plan without a fake excuse",
+    "locale": "en",
+    "sourceCategoryId": "social_cancel_plan",
+    "channelId": "whatsapp",
+    "relationshipId": "friend",
+    "strategyId": "truthful_boundary",
+    "riskLevel": "low",
+    "pressureLevel": "low",
+    "scenarioCategory": "social_plans",
+    "intent": "cancel",
+    "userNeed": "The user wants to cancel an agreed social plan kindly without inventing an emergency.",
+    "inputPattern": "I cannot make it tonight and want to be honest but not dramatic.",
+    "safetyNotes": [
+      "Do not invent illness, emergencies or third-party blame.",
+      "Offer rescheduling only when the user has a real alternative."
+    ],
+    "expectedOutputContract": "four_reply_variants",
+    "tags": ["social", "cancel", "truthful"]
+  },
+  {
+    "id": "msv2-work-delay-client-email",
+    "title": "Send a client delay update by email",
+    "locale": "en",
+    "sourceCategoryId": "work_delay_client",
+    "channelId": "email",
+    "relationshipId": "work",
+    "strategyId": "delay_update",
+    "riskLevel": "medium",
+    "pressureLevel": "medium",
+    "scenarioCategory": "work_commitments",
+    "intent": "delay",
+    "userNeed": "The user needs to communicate a delay without blaming a colleague or promising an unsafe deadline.",
+    "inputPattern": "The client work is delayed and I need a professional update.",
+    "safetyNotes": [
+      "Avoid blame and evasive wording.",
+      "Include only realistic timing that the user actually provided."
+    ],
+    "expectedOutputContract": "four_reply_variants",
+    "tags": ["work", "client", "delay"]
+  },
+  {
+    "id": "msv2-family-boundary-sms",
+    "title": "Set a short family boundary",
+    "locale": "en",
+    "sourceCategoryId": "social_no_explanation",
+    "channelId": "sms",
+    "relationshipId": "family",
+    "strategyId": "direct_boundary",
+    "riskLevel": "medium",
+    "pressureLevel": "high",
+    "scenarioCategory": "family_boundaries",
+    "intent": "boundary",
+    "userNeed": "The user wants to set a boundary without diagnosing the other person or escalating the conflict.",
+    "inputPattern": "I do not want to explain this again to my family member.",
+    "safetyNotes": [
+      "Do not diagnose or label the other person.",
+      "State the boundary and one practical next step."
+    ],
+    "expectedOutputContract": "four_reply_variants",
+    "tags": ["family", "boundary", "de-escalation"]
+  },
+  {
+    "id": "msv2-dating-clarify-whatsapp",
+    "title": "Ask for dating clarity without pressure",
+    "locale": "en",
+    "channelId": "whatsapp",
+    "relationshipId": "dating",
+    "strategyId": "clarify_intent",
+    "riskLevel": "medium",
+    "pressureLevel": "medium",
+    "scenarioCategory": "dating_clarity",
+    "intent": "clarify",
+    "userNeed": "The user wants clarity while respecting consent and non-response.",
+    "inputPattern": "I want to ask where this is going without sounding pushy.",
+    "safetyNotes": [
+      "Ask one clear question at most.",
+      "Avoid jealousy tests, pressure tactics or implied obligation."
+    ],
+    "expectedOutputContract": "four_reply_variants",
+    "tags": ["dating", "clarity", "consent-aware"]
+  },
+  {
+    "id": "msv2-service-decline-scope-email",
+    "title": "Decline extra service scope",
+    "locale": "en",
+    "channelId": "email",
+    "relationshipId": "service",
+    "strategyId": "decline_capacity",
+    "riskLevel": "medium",
+    "pressureLevel": "medium",
+    "scenarioCategory": "service_request",
+    "intent": "decline",
+    "userNeed": "The user needs to decline extra scope clearly without hostility.",
+    "inputPattern": "A service provider or client is asking for more than I can do.",
+    "safetyNotes": [
+      "Do not use hostile or punitive framing.",
+      "Keep the decline clear and practical."
+    ],
+    "expectedOutputContract": "four_reply_variants",
+    "tags": ["service", "scope", "decline"]
+  }
+]

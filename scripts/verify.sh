@@ -5,7 +5,11 @@ echo "==> Node"
 node --version
 
 echo "==> npm"
-npm --version
+if command -v npm >/dev/null 2>&1; then
+  npm --version
+else
+  echo "npm unavailable; using local node_modules binaries for lint/build"
+fi
 
 if [ -f scripts/verify-language-foundation.mjs ]; then
   echo "==> Language foundation"
@@ -47,15 +51,28 @@ if [ -f scripts/verify-nodrama-content-depth.mjs ]; then
   node scripts/verify-nodrama-content-depth.mjs
 fi
 
+if [ -f scripts/verify-taxonomy-schema-v2.mjs ]; then
+  echo "==> NoDrama taxonomy schema v2"
+  node scripts/verify-taxonomy-schema-v2.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs
 fi
 
 echo "==> Lint"
-npm run lint
+if command -v npm >/dev/null 2>&1; then
+  npm run lint
+else
+  node node_modules/eslint/bin/eslint.js
+fi
 
 echo "==> Build"
-npm run build
+if command -v npm >/dev/null 2>&1; then
+  npm run build
+else
+  node node_modules/next/dist/bin/next build
+fi
 
 echo "✅ Verify passed"
