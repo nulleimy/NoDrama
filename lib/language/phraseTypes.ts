@@ -18,6 +18,7 @@ export type ReplyIntent =
   | "apology"
   | "follow_up"
   | "clarify"
+  | "negotiate"
   | "refuse_cost"
   | "refuse_scope"
   | "not_available";
