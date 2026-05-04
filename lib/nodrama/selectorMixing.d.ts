@@ -46,6 +46,7 @@ export type NormalizedGenerationContext = {
   confidence: SelectorMixingConfidence;
   safetyNotes: string[];
   safetyWarnings: string[];
+  signalKeywords: string[];
   situation: {
     text: string;
     language: LanguageCode;

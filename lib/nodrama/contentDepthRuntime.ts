@@ -18,6 +18,7 @@ import { createNormalizedGenerationContext } from "@/lib/nodrama/selectorMixing.
 type NormalizedGenerationContext = {
   inferredDomain: string;
   safetyWarnings: string[];
+  signalKeywords: string[];
   situation: {
     scenarioCategory: string;
     intent: string;

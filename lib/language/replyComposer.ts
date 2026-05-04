@@ -134,6 +134,7 @@ function composeSafetyDegradedReply(
       "manipulation_or_harassment_request_blocked",
       "blame_shifting_request_degraded",
       "coercive_request_degraded",
+      "impersonation_request_blocked",
     ].includes(warning)
   );
 
@@ -217,7 +218,7 @@ function composeCzech(
   if (family === "exit") return composeCzechExit(input, isFormal, isFirm);
   if (family === "delay") return composeCzechDelay(isFormal, isFirm);
   if (family === "boundary") return composeCzechBoundary(input, isFormal, isFirm);
-  return composeCzechDecline(isFormal, isFirm);
+  return composeCzechDecline(input, isFormal, isFirm);
 }
 
 function composeEnglish(
@@ -236,7 +237,7 @@ function composeEnglish(
   if (family === "exit") return composeEnglishExit(input, isFormal, isFirm);
   if (family === "delay") return composeEnglishDelay(isFormal, isFirm);
   if (family === "boundary") return composeEnglishBoundary(input, isFormal, isFirm);
-  return composeEnglishDecline(isFormal, isFirm);
+  return composeEnglishDecline(input, isFormal, isFirm);
 }
 
 function composeCzechWork(
@@ -466,6 +467,19 @@ function composeCzechBoundary(
   isFormal: boolean,
   isFirm: boolean
 ) {
+  if (isSocialBoundaryContext(input)) {
+    return {
+      shortReply: "Už jsem říkala, že nepřijdu. Prosím respektuj to.",
+      naturalReply:
+        "Už jsem říkala, že nepřijdu, a nechci to dál řešit dokola. Prosím respektuj to.",
+      strongReply: isFirm
+        ? "Moje odpověď je ne. Nechci to dál rozebírat a potřebuji, abys to respektoval/a."
+        : "Nepřijdu a nechci o tom dál debatovat. Prosím ber to jako finální odpověď.",
+      followUpReply:
+        "Kdyby přemlouvali dál: „Rozumím, že bys chtěl/a jinou odpověď, ale svoje rozhodnutí neměním.“",
+    };
+  }
+
   if (isMoneyContext(input)) {
     return {
       shortReply: "Peníze půjčovat nechci, takže do toho nepůjdu.",
@@ -498,6 +512,19 @@ function composeEnglishBoundary(
   isFormal: boolean,
   isFirm: boolean
 ) {
+  if (isSocialBoundaryContext(input)) {
+    return {
+      shortReply: "I already said I can’t come. Please respect that.",
+      naturalReply:
+        "I already said I can’t come, and I need you to respect that. I don’t want to keep debating it.",
+      strongReply: isFirm
+        ? "My answer is no. I don’t want to keep discussing it, and I need that to be respected."
+        : "I’m not coming, and I don’t want to keep debating it. Please take this as my final answer.",
+      followUpReply:
+        "If they keep pushing: “I understand you wanted a different answer, but I’m not changing my decision.”",
+    };
+  }
+
   if (isMoneyContext(input)) {
     return {
       shortReply: "I’m not comfortable lending money, so I’m going to say no.",
@@ -635,12 +662,46 @@ function isMoneyContext(input: ComposerInput) {
   );
 }
 
-function composeCzechDecline(isFormal: boolean, isFirm: boolean) {
+function isSocialBoundaryContext(input: ComposerInput) {
+  const relationshipId = input.contentDepth.selectorMixing.selectors.relationship.id;
+
+  return (
+    ["friend", "close_friend"].includes(relationshipId) &&
+    input.contentDepth.selectorMixing.inferredDomain === "social"
+  );
+}
+
+function isFamilyDeclineContext(input: ComposerInput) {
+  return (
+    input.contentDepth.selectorMixing.selectors.relationship.id === "family" ||
+    input.contentDepth.selectorMixing.inferredDomain === "family" ||
+    input.contentDepth.scenarioCategory === "family_boundaries"
+  );
+}
+
+function composeCzechDecline(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  if (isFamilyDeclineContext(input)) {
+    return {
+      shortReply: "Tento víkend nepřijedu. Nechci se kvůli tomu hádat.",
+      naturalReply:
+        "Chápu, že tě to mrzí, ale tento víkend nepřijedu. Nechci se kvůli tomu hádat, jen ti to říkám rovnou.",
+      strongReply: isFirm
+        ? "Tento víkend nepřijedu. Rozumím, že je to pro tebe nepříjemné, ale moje rozhodnutí platí."
+        : "Vím, že bys byl/a rád/a, kdybych přijel/a, ale tentokrát nepřijedu.",
+      followUpReply:
+        "Kdyby přišel tlak přes vinu: „Mrzí mě, že to tak vnímáš, ale nechci rozhodnutí měnit pod tlakem.“",
+    };
+  }
+
   return {
     shortReply: "Díky za pozvání, tentokrát to vynechám.",
     naturalReply: isFormal
       ? "Děkuji za pozvání. Tentokrát se nezapojím, ale vážím si toho, že jste na mě mysleli."
-      : "Díky za pozvání, tentokrát to vynechám. Nechci to zbytečně natahovat, ale vážím si toho.",
+      : "Dneska to nakonec nedám. Nechci si vymýšlet důvody ani to zbytečně natahovat, tak říkám rovnou, že tentokrát vynechám. Díky za pozvání.",
     strongReply: isFirm
       ? "Díky, ale tentokrát ne. Nechci to nechávat otevřené, moje odpověď zůstává stejná."
       : "Díky, tentokrát to vynechám. Nechci slibovat něco, do čeho teď nejdu.",
@@ -649,12 +710,30 @@ function composeCzechDecline(isFormal: boolean, isFirm: boolean) {
   };
 }
 
-function composeEnglishDecline(isFormal: boolean, isFirm: boolean) {
+function composeEnglishDecline(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  if (isFamilyDeclineContext(input)) {
+    return {
+      shortReply:
+        "I’m not visiting this weekend. I don’t want this to become an argument.",
+      naturalReply:
+        "I understand you’re disappointed, but I’m not visiting this weekend. I don’t want this to turn into an argument, so I’m saying it clearly.",
+      strongReply: isFirm
+        ? "I’m not visiting this weekend. I understand that is disappointing, but my decision stands."
+        : "I know you wanted me to visit, but I’m not coming this time.",
+      followUpReply:
+        "If guilt pressure continues: “I’m sorry it feels that way, but I don’t want to change my decision under pressure.”",
+    };
+  }
+
   return {
     shortReply: "Thanks for inviting me, I’ll sit this one out.",
     naturalReply: isFormal
       ? "Thank you for the invitation. I won’t join this time, but I appreciate you thinking of me."
-      : "Thanks for inviting me, I’ll sit this one out. I don’t want to drag it out, but I appreciate it.",
+      : "I’m going to sit this one out tonight. I don’t want to make up a story or drag it out, so I’m saying it directly. Thanks for inviting me.",
     strongReply: isFirm
       ? "Thanks, but not this time. I don’t want to leave it open; my answer stays the same."
       : "Thanks, I’ll skip this one. I don’t want to promise something I’m not going to do.",

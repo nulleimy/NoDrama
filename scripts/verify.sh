@@ -81,6 +81,11 @@ if [ -f scripts/verify-mvp-routing-and-test-limit.mjs ]; then
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-mvp-routing-and-test-limit.mjs
 fi
 
+if [ -f scripts/verify-safety-polarity-domain-phrases.mjs ]; then
+  echo "==> Safety polarity and domain-specific phrases"
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-safety-polarity-domain-phrases.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs
