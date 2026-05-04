@@ -8,6 +8,7 @@ import type {
   SituationCategory,
 } from "@/lib/language/phraseTypes";
 import type { ContentDepthRuntimeContext } from "@/lib/nodrama/contentDepthRuntime";
+import { mapSelectorStrategyToIntent } from "@/lib/nodrama/selectorMixing.mjs";
 
 type ReplyFamily = "repair" | "delay" | "decline" | "boundary" | "work";
 
@@ -83,7 +84,13 @@ export function detectReplyLanguage(input: GenerateRequest): LanguageCode {
 export function composeReplyVariants(
   input: ComposerInput
 ): GenerateResponse["output"] {
-  const family = resolveReplyFamily(input.category.intent, input.category.domain);
+  const strategyIntent = mapSelectorStrategyToIntent(
+    input.contentDepth.selectorMixing.selectors.strategy.id
+  );
+  const family = resolveReplyFamily(
+    strategyIntent as ReplyIntent,
+    input.category.domain
+  );
   const isFormal = isFormalContext(input);
   const isFirm = isFirmContext(input);
   const phraseFallback = input.selectedPhrases[0]?.text;
