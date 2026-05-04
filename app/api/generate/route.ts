@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { consumeCredit } from "@/lib/credits/creditStore";
 import { getCreditUserId } from "@/lib/credits/userIdentity";
+import {
+  isLocalGenerationLimitBypassed,
+  shouldBlockFreeGeneration,
+} from "@/lib/generationLimit";
 import { generateRequestSchema, type GenerateErrorResponse } from "@/lib/generateContract";
 import { generatePhraseEngineReply } from "@/lib/language/phraseEngine";
 import {
@@ -32,11 +36,17 @@ export async function POST(request: Request) {
 
     const anonId = await getOrCreateAnonId();
     const currentUsage = await readDailyUsage(anonId);
+    const limitBypassed = isLocalGenerationLimitBypassed();
 
-    if (!creditResult.consumed) {
-      const remainingBeforeGenerate = Math.max(FREE_DAILY_LIMIT - currentUsage, 0);
-
-      if (remainingBeforeGenerate <= 0) {
+    if (!creditResult.consumed && !limitBypassed) {
+      if (
+        shouldBlockFreeGeneration({
+          currentUsage,
+          creditConsumed: creditResult.consumed,
+          freeLimit: FREE_DAILY_LIMIT,
+          limitBypassed,
+        })
+      ) {
         return NextResponse.json(
           {
             ok: false,
@@ -51,6 +61,8 @@ export async function POST(request: Request) {
     }
 
     const nextUsage = creditResult.consumed
+      ? currentUsage
+      : limitBypassed
       ? currentUsage
       : await incrementDailyUsage(anonId);
 

@@ -96,6 +96,7 @@ const relationshipIdSchema = z.enum([
   ...legacyRelationshipIds,
 ]);
 const channelIdSchema = z.enum([...finalChannelIds, ...legacyChannelIds]);
+const strategyIdSchema = z.enum([...finalStrategyIds, ...legacyStrategyIds]);
 
 type LegacyTone = z.infer<typeof legacyToneSchema>;
 type LegacyRelationship = z.infer<typeof legacyRelationshipSchema>;
@@ -166,7 +167,23 @@ const generateRequestBaseSchema = z.object({
   toneId: toneIdSchema.optional(),
   relationshipId: relationshipIdSchema.optional(),
   channelId: channelIdSchema.optional(),
-  strategyId: z.enum([...finalStrategyIds, ...legacyStrategyIds]).optional(),
+  strategyId: strategyIdSchema.optional(),
+  selectorMixing: z
+    .object({
+      selected: z
+        .object({
+          toneId: toneIdSchema.optional(),
+          relationshipId: relationshipIdSchema.optional(),
+          channelId: channelIdSchema.optional(),
+          strategyId: strategyIdSchema.optional(),
+          tone: toneIdSchema.optional(),
+          relationship: relationshipIdSchema.optional(),
+          channel: channelIdSchema.optional(),
+          strategy: strategyIdSchema.optional(),
+        })
+        .optional(),
+    })
+    .optional(),
 });
 
 type GenerateRequestBase = z.infer<typeof generateRequestBaseSchema>;

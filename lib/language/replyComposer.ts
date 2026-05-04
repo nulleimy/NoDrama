@@ -17,7 +17,9 @@ type ReplyFamily =
   | "boundary"
   | "work"
   | "negotiate"
-  | "clarify";
+  | "clarify"
+  | "redirect"
+  | "exit";
 
 type ComposerInput = {
   request: GenerateRequest;
@@ -95,17 +97,20 @@ export function composeReplyVariants(
     input.contentDepth.selectorMixing.selectors.strategy.id
   );
   const family = resolveReplyFamily(
+    input.contentDepth.selectorMixing.selectors.strategy.id,
     strategyIntent as ReplyIntent,
     input.category.domain
   );
   const isFormal = isFormalContext(input);
   const isFirm = isFirmContext(input);
   const phraseFallback = input.selectedPhrases[0]?.text;
+  const safetyDegraded = composeSafetyDegradedReply(input, isFormal, isFirm);
 
   const variants =
-    input.language === "en"
+    safetyDegraded ||
+    (input.language === "en"
       ? composeEnglish(input, family, isFormal, isFirm)
-      : composeCzech(input, family, isFormal, isFirm);
+      : composeCzech(input, family, isFormal, isFirm));
 
   if (!phraseFallback) return variants;
 
@@ -117,18 +122,71 @@ export function composeReplyVariants(
   };
 }
 
+function composeSafetyDegradedReply(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  const warnings = input.contentDepth.selectorMixing.safetyWarnings;
+  const shouldDegrade = warnings.some((warning) =>
+    [
+      "fake_alibi_request_blocked",
+      "manipulation_or_harassment_request_blocked",
+      "blame_shifting_request_degraded",
+      "coercive_request_degraded",
+    ].includes(warning)
+  );
+
+  if (!shouldDegrade) return null;
+
+  if (input.language === "en") {
+    return {
+      shortReply: "I can’t make up an excuse, but I can be clear and honest.",
+      naturalReply: isFormal
+        ? "I don’t want to invent a reason or put blame somewhere it does not belong. I can give you a clear, honest update and focus on the next step."
+        : "I don’t want to make up an excuse or shift blame. I can be honest, keep it brief, and focus on what happens next.",
+      strongReply: isFirm
+        ? "I’m not going to use a fake excuse or pressure anyone. I’ll keep this truthful and direct."
+        : "I’ll keep this truthful and avoid making up details or pressuring anyone.",
+      followUpReply:
+        "If more detail is needed: “I don’t want to over-explain or invent reasons. The honest version is enough.”",
+    };
+  }
+
+  return {
+    shortReply: "Nebudu si vymýšlet výmluvu, ale můžu to říct jasně a pravdivě.",
+    naturalReply: isFormal
+      ? "Nechci si vymýšlet důvod ani přesouvat vinu někam, kam nepatří. Můžu poslat jasnou a pravdivou zprávu zaměřenou na další krok."
+      : "Nechci si vymýšlet výmluvu ani házet vinu na někoho jiného. Můžu to říct pravdivě, stručně a bez zbytečného tlaku.",
+    strongReply: isFirm
+      ? "Nebudu používat falešnou výmluvu ani na nikoho tlačit. Zůstanu u pravdivé a přímé verze."
+      : "Zůstanu u pravdy a nebudu si vymýšlet detaily ani na nikoho tlačit.",
+    followUpReply:
+      "Kdyby bylo potřeba víc detailů: „Nechci to přehánět ani si vymýšlet důvody. Pravdivá verze stačí.“",
+  };
+}
+
 function resolveReplyFamily(
+  strategyId: string,
   intent: ReplyIntent,
   domain: SituationCategory["domain"]
 ): ReplyFamily {
+  if (strategyId === "repair") return "repair";
+  if (strategyId === "soft_decline") return "decline";
+  if (strategyId === "hard_boundary") return "boundary";
+  if (strategyId === "delay") return "delay";
+  if (strategyId === "negotiate") return "negotiate";
+  if (strategyId === "clarify") return "clarify";
+  if (strategyId === "redirect") return "redirect";
+  if (strategyId === "exit") return "exit";
   if (intent === "negotiate") return "negotiate";
   if (intent === "clarify" || intent === "follow_up") return "clarify";
-  if (domain === "work" || domain === "business") return "work";
   if (intent === "apology") return "repair";
   if (intent === "delay" || intent === "reschedule" || intent === "not_available") {
     return "delay";
   }
   if (intent === "boundary") return "boundary";
+  if (domain === "work" || domain === "business") return "work";
   return "decline";
 }
 
@@ -155,8 +213,10 @@ function composeCzech(
   if (family === "repair") return composeCzechRepair(isFormal, isFirm);
   if (family === "negotiate") return composeCzechNegotiate(input, isFormal, isFirm);
   if (family === "clarify") return composeCzechClarify(input, isFormal, isFirm);
+  if (family === "redirect") return composeCzechRedirect(input, isFormal, isFirm);
+  if (family === "exit") return composeCzechExit(input, isFormal, isFirm);
   if (family === "delay") return composeCzechDelay(isFormal, isFirm);
-  if (family === "boundary") return composeCzechBoundary(isFormal, isFirm);
+  if (family === "boundary") return composeCzechBoundary(input, isFormal, isFirm);
   return composeCzechDecline(isFormal, isFirm);
 }
 
@@ -172,8 +232,10 @@ function composeEnglish(
     return composeEnglishNegotiate(input, isFormal, isFirm);
   }
   if (family === "clarify") return composeEnglishClarify(input, isFormal, isFirm);
+  if (family === "redirect") return composeEnglishRedirect(input, isFormal, isFirm);
+  if (family === "exit") return composeEnglishExit(input, isFormal, isFirm);
   if (family === "delay") return composeEnglishDelay(isFormal, isFirm);
-  if (family === "boundary") return composeEnglishBoundary(isFormal, isFirm);
+  if (family === "boundary") return composeEnglishBoundary(input, isFormal, isFirm);
   return composeEnglishDecline(isFormal, isFirm);
 }
 
@@ -212,7 +274,7 @@ function composeCzechWork(
     };
   }
 
-  return composeCzechBoundary(isFormal, isFirm);
+  return composeCzechBoundary(input, isFormal, isFirm);
 }
 
 function composeEnglishWork(
@@ -250,7 +312,7 @@ function composeEnglishWork(
     };
   }
 
-  return composeEnglishBoundary(isFormal, isFirm);
+  return composeEnglishBoundary(input, isFormal, isFirm);
 }
 
 function composeCzechRepair(isFormal: boolean, isFirm: boolean) {
@@ -399,7 +461,25 @@ function composeEnglishDelay(isFormal: boolean, isFirm: boolean) {
   };
 }
 
-function composeCzechBoundary(isFormal: boolean, isFirm: boolean) {
+function composeCzechBoundary(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  if (isMoneyContext(input)) {
+    return {
+      shortReply: "Peníze půjčovat nechci, takže do toho nepůjdu.",
+      naturalReply: isFormal
+        ? "Rozumím, že je to citlivé, ale peníze půjčovat nechci. Nechci to dlouze vysvětlovat, moje odpověď je ne."
+        : "Chápu, že se ptáš, ale peníze půjčovat nechci. Nechci to dlouze rozebírat, moje odpověď je ne.",
+      strongReply: isFirm
+        ? "Peníze nepůjčím. Prosím, respektuj to bez dalšího přemlouvání."
+        : "Do půjčování peněz nepůjdu. Nechci kolem toho dělat napětí, ale odpověď neměním.",
+      followUpReply:
+        "Kdyby tlačili dál: „Rozumím, ale v tomhle mám jasno. Peníze půjčovat nebudu.“",
+    };
+  }
+
   return {
     shortReply: "Tohle teď nemohu přijmout v tomhle rozsahu.",
     naturalReply: isFormal
@@ -413,7 +493,25 @@ function composeCzechBoundary(isFormal: boolean, isFirm: boolean) {
   };
 }
 
-function composeEnglishBoundary(isFormal: boolean, isFirm: boolean) {
+function composeEnglishBoundary(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  if (isMoneyContext(input)) {
+    return {
+      shortReply: "I’m not comfortable lending money, so I’m going to say no.",
+      naturalReply: isFormal
+        ? "I understand this is sensitive, but I’m not comfortable lending money. I don’t want to over-explain it; my answer is no."
+        : "I get why you’re asking, but I’m not comfortable lending money. I don’t want to make it a long discussion; my answer is no.",
+      strongReply: isFirm
+        ? "I’m not lending money. Please respect that without pushing further."
+        : "I’m not going to lend money. I don’t want tension around it, but I’m not changing my answer.",
+      followUpReply:
+        "If they keep pushing: “I understand, but I’m clear on this. I’m not lending money.”",
+    };
+  }
+
   return {
     shortReply: "I can’t take this on in the current scope.",
     naturalReply: isFormal
@@ -425,6 +523,116 @@ function composeEnglishBoundary(isFormal: boolean, isFirm: boolean) {
     followUpReply:
       "If there is pressure: “I understand this matters. Without a change in scope or timing, I can’t confirm it.”",
   };
+}
+
+function composeCzechRedirect(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  const isPublic =
+    input.contentDepth.selectorMixing.selectors.relationship.id ===
+      "stranger_public" ||
+    input.contentDepth.selectorMixing.selectors.channel.id === "social_dm";
+
+  return {
+    shortReply: isPublic
+      ? "Tohle tady řešit nebudu, prosím směřujte to do správného kanálu."
+      : "Tohle teď přesměruju jinam, kde to dává větší smysl.",
+    naturalReply: isFormal
+      ? "Tady to nechci řešit v detailu. Prosím pošlete to správným kanálem nebo člověku, který to může vyřešit."
+      : "Tady to nechci rozebírat. Pošlu tě radši na vhodnější místo nebo člověka, který s tím umí pomoct.",
+    strongReply: isFirm
+      ? "Tímhle směrem v téhle konverzaci pokračovat nebudu. Prosím použijte vhodný kanál."
+      : "Nechci to řešit tady. Dává větší smysl přesměrovat to jinam.",
+    followUpReply:
+      "Kdyby se to vracelo zpět: „Rozumím, ale tady to nevyřešíme. Držme se prosím vhodného kanálu.“",
+  };
+}
+
+function composeEnglishRedirect(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  const isPublic =
+    input.contentDepth.selectorMixing.selectors.relationship.id ===
+      "stranger_public" ||
+    input.contentDepth.selectorMixing.selectors.channel.id === "social_dm";
+
+  return {
+    shortReply: isPublic
+      ? "I’m not going to handle this here; please use the right channel."
+      : "I’m going to redirect this to a better place to handle it.",
+    naturalReply: isFormal
+      ? "I don’t want to handle the details here. Please send this through the right channel or to the person who can resolve it."
+      : "I don’t want to unpack this here. I’m going to point you to a better place or person for it.",
+    strongReply: isFirm
+      ? "I’m not continuing this in this conversation. Please use the appropriate channel."
+      : "I don’t want to handle this here. Redirecting it is the better next step.",
+    followUpReply:
+      "If it comes back: “I understand, but we won’t solve it here. Please keep this in the right channel.”",
+  };
+}
+
+function composeCzechExit(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  const isGroup =
+    input.contentDepth.selectorMixing.selectors.channel.id === "group_chat";
+
+  return {
+    shortReply: isGroup
+      ? "Z téhle konverzace se teď odpojím. Nechci to dál vyhrocovat."
+      : "Tuhle konverzaci teď ukončím, ať to dál neeskaluje.",
+    naturalReply: isFormal
+      ? "Myslím, že teď bude nejlepší tuhle konverzaci ukončit. Nechci přidávat další napětí, proto se odpojím."
+      : "Teď z toho vystoupím. Nechci to dál hrotit ani rozebírat ve chvíli, kdy to nikam neposouvá.",
+    strongReply: isFirm
+      ? "V téhle konverzaci už pokračovat nebudu. Odpojuji se a prosím respektujte to."
+      : "Tady se zastavím. Nechci pokračovat způsobem, který by to zhoršil.",
+    followUpReply:
+      "Kdyby přišlo další naléhání: „Nechávám to tady. Vrátím se k tomu jen tehdy, když to půjde řešit klidně.“",
+  };
+}
+
+function composeEnglishExit(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  const isGroup =
+    input.contentDepth.selectorMixing.selectors.channel.id === "group_chat";
+
+  return {
+    shortReply: isGroup
+      ? "I’m going to step out of this chat now. I don’t want to escalate it."
+      : "I’m going to end this conversation now so it does not escalate.",
+    naturalReply: isFormal
+      ? "I think it is best to end this conversation here. I don’t want to add more tension, so I’m stepping away."
+      : "I’m going to step away from this now. I don’t want to keep going when it is not helping.",
+    strongReply: isFirm
+      ? "I’m not continuing this conversation. I’m stepping away, and I need that to be respected."
+      : "I’m going to stop here. I don’t want to continue in a way that makes this worse.",
+    followUpReply:
+      "If they keep pressing: “I’m leaving it here. I’ll only come back to this if it can be handled calmly.”",
+  };
+}
+
+function isMoneyContext(input: ComposerInput) {
+  const normalized = input.request.situation
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  return (
+    input.contentDepth.selectorMixing.inferredDomain === "money" ||
+    /\b(money|lend|loan|borrow|payment|price|penize|pujcit|pujck|platba|cena)\b/.test(
+      normalized
+    )
+  );
 }
 
 function composeCzechDecline(isFormal: boolean, isFirm: boolean) {
