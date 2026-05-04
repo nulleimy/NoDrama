@@ -52,11 +52,11 @@ const expectedIdsByGroup = {
     "delay",
     "soft_decline",
     "hard_boundary",
-    "redirect",
     "repair",
-    "exit",
-    "negotiate",
     "clarify",
+    "redirect",
+    "negotiate",
+    "exit",
   ],
 };
 
@@ -76,7 +76,47 @@ const allowedLegacyValuesByGroup = {
 
 const requiredLabels = {
   tone: {
+    neutral: { cs: "Neutrální", en: "Neutral" },
+    soft: { cs: "Jemný", en: "Soft" },
+    assertive: { cs: "Asertivní", en: "Assertive" },
+    formal: { cs: "Formální", en: "Formal" },
+    apologetic: { cs: "Omluvný", en: "Apologetic" },
+    warm: { cs: "Vřelý", en: "Warm" },
+    concise: { cs: "Stručný", en: "Concise" },
     playful: { cs: "Vtipný / odlehčený", en: "Light / playful" },
+  },
+  relationship: {
+    authority: { cs: "Autorita", en: "Authority" },
+    peer: { cs: "Kolega / spolužák", en: "Peer" },
+    client: { cs: "Klient / zákazník", en: "Client / customer" },
+    friend: { cs: "Kamarád / známý", en: "Friend / acquaintance" },
+    close_friend: { cs: "Blízký kamarád", en: "Close friend" },
+    partner: { cs: "Partner / dating", en: "Partner / dating" },
+    family: { cs: "Rodina", en: "Family" },
+    stranger_public: {
+      cs: "Cizí člověk / veřejnost",
+      en: "Stranger / public",
+    },
+  },
+  channel: {
+    messenger_1to1: { cs: "Soukromá zpráva", en: "Private message" },
+    group_chat: { cs: "Skupinový chat", en: "Group chat" },
+    email: { cs: "E-mail", en: "Email" },
+    work_chat: { cs: "Pracovní appka", en: "Work chat" },
+    professional_dm: { cs: "Profesní DM", en: "Professional DM" },
+    social_dm: { cs: "Sociální DM", en: "Social DM" },
+    voice_call: { cs: "Telefon", en: "Phone / voice" },
+    face_to_face: { cs: "Osobně", en: "Face to face" },
+  },
+  strategy: {
+    delay: { cs: "Získat čas", en: "Buy time" },
+    soft_decline: { cs: "Odmítnout hezky", en: "Decline kindly" },
+    hard_boundary: { cs: "Nastavit hranici", en: "Set a boundary" },
+    repair: { cs: "Omluvit se / napravit", en: "Apologize / repair" },
+    clarify: { cs: "Vyjasnit situaci", en: "Clarify" },
+    redirect: { cs: "Přesměrovat", en: "Redirect" },
+    negotiate: { cs: "Vyjednat podmínky", en: "Negotiate terms" },
+    exit: { cs: "Ukončit to", en: "Exit conversation" },
   },
 };
 

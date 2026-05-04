@@ -82,21 +82,134 @@ const legacyStrategyIds = [
   "brief_exit",
 ] as const;
 
-export const generateRequestSchema = z.object({
+const legacyToneSchema = z.enum(["Milý", "Asertivní", "Formální", "Vtipný"]);
+const legacyRelationshipSchema = z.enum([
+  "Kamarádi",
+  "Práce",
+  "Rodina",
+  "Randění",
+]);
+const legacyChannelSchema = z.enum(["WhatsApp", "SMS", "E-mail", "Slack"]);
+const toneIdSchema = z.enum([...finalToneIds, ...legacyToneIds]);
+const relationshipIdSchema = z.enum([
+  ...finalRelationshipIds,
+  ...legacyRelationshipIds,
+]);
+const channelIdSchema = z.enum([...finalChannelIds, ...legacyChannelIds]);
+
+type LegacyTone = z.infer<typeof legacyToneSchema>;
+type LegacyRelationship = z.infer<typeof legacyRelationshipSchema>;
+type LegacyChannel = z.infer<typeof legacyChannelSchema>;
+type ToneId = z.infer<typeof toneIdSchema>;
+type RelationshipId = z.infer<typeof relationshipIdSchema>;
+type ChannelId = z.infer<typeof channelIdSchema>;
+
+const legacyToneById: Record<ToneId, LegacyTone> = {
+  neutral: "Milý",
+  soft: "Milý",
+  assertive: "Asertivní",
+  formal: "Formální",
+  apologetic: "Milý",
+  warm: "Milý",
+  concise: "Formální",
+  playful: "Vtipný",
+  kind: "Milý",
+  direct: "Asertivní",
+  light: "Vtipný",
+  firm: "Asertivní",
+  calm: "Milý",
+  brief: "Formální",
+};
+
+const legacyRelationshipById: Record<RelationshipId, LegacyRelationship> = {
+  authority: "Práce",
+  peer: "Práce",
+  client: "Práce",
+  friend: "Kamarádi",
+  close_friend: "Kamarádi",
+  partner: "Randění",
+  family: "Rodina",
+  stranger_public: "Kamarádi",
+  work: "Práce",
+  dating: "Randění",
+  service: "Práce",
+  group: "Kamarádi",
+  acquaintance: "Kamarádi",
+};
+
+const legacyChannelById: Record<ChannelId, LegacyChannel> = {
+  messenger_1to1: "WhatsApp",
+  group_chat: "WhatsApp",
+  email: "E-mail",
+  work_chat: "Slack",
+  professional_dm: "Slack",
+  social_dm: "WhatsApp",
+  voice_call: "WhatsApp",
+  face_to_face: "WhatsApp",
+  whatsapp: "WhatsApp",
+  sms: "SMS",
+  slack: "Slack",
+  messenger: "WhatsApp",
+  instagram_dm: "WhatsApp",
+  signal: "WhatsApp",
+  teams: "Slack",
+};
+
+const generateRequestBaseSchema = z.object({
   situation: z
     .string()
     .min(8, "Popiš situaci trochu konkrétněji.")
     .max(800, "Situace je moc dlouhá. Zkrať ji prosím."),
-  tone: z.enum(["Milý", "Asertivní", "Formální", "Vtipný"]),
-  relationship: z.enum(["Kamarádi", "Práce", "Rodina", "Randění"]),
-  channel: z.enum(["WhatsApp", "SMS", "E-mail", "Slack"]),
-  toneId: z.enum([...finalToneIds, ...legacyToneIds]).optional(),
-  relationshipId: z
-    .enum([...finalRelationshipIds, ...legacyRelationshipIds])
-    .optional(),
-  channelId: z.enum([...finalChannelIds, ...legacyChannelIds]).optional(),
+  tone: legacyToneSchema.optional(),
+  relationship: legacyRelationshipSchema.optional(),
+  channel: legacyChannelSchema.optional(),
+  toneId: toneIdSchema.optional(),
+  relationshipId: relationshipIdSchema.optional(),
+  channelId: channelIdSchema.optional(),
   strategyId: z.enum([...finalStrategyIds, ...legacyStrategyIds]).optional(),
 });
+
+type GenerateRequestBase = z.infer<typeof generateRequestBaseSchema>;
+
+function normalizeGenerateRequest(input: GenerateRequestBase) {
+  return {
+    ...input,
+    tone: input.tone ?? (input.toneId ? legacyToneById[input.toneId] : "Milý"),
+    relationship:
+      input.relationship ??
+      (input.relationshipId ? legacyRelationshipById[input.relationshipId] : "Kamarádi"),
+    channel:
+      input.channel ?? (input.channelId ? legacyChannelById[input.channelId] : "WhatsApp"),
+  };
+}
+
+export const generateRequestSchema = generateRequestBaseSchema
+  .superRefine((input, context) => {
+    if (!input.tone && !input.toneId) {
+      context.addIssue({
+        code: "custom",
+        path: ["tone"],
+        message: "Vyber tón odpovědi.",
+      });
+    }
+
+    if (!input.relationship && !input.relationshipId) {
+      context.addIssue({
+        code: "custom",
+        path: ["relationship"],
+        message: "Vyber vztah.",
+      });
+    }
+
+    if (!input.channel && !input.channelId) {
+      context.addIssue({
+        code: "custom",
+        path: ["channel"],
+        message: "Vyber kanál.",
+      });
+    }
+  })
+  .transform(normalizeGenerateRequest);
 
 export type GenerateRequest = z.infer<typeof generateRequestSchema>;
 
