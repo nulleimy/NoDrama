@@ -21,6 +21,11 @@ if [ -f scripts/verify-phrase-engine.mjs ]; then
   node scripts/verify-phrase-engine.mjs
 fi
 
+if [ -f scripts/verify-generate-contract.mjs ]; then
+  echo "==> Generate contract"
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-generate-contract.mjs
+fi
+
 if [ -f scripts/verify-phrase-expansion.mjs ]; then
   echo "==> Phrase expansion"
   node scripts/verify-phrase-expansion.mjs
