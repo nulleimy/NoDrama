@@ -81,8 +81,10 @@ if (validationIssues.length > 0) {
   fail(`Seed dataset is invalid:\n${validationIssues.join("\n")}`);
 }
 
-if (seedRecords.length < 4 || seedRecords.length > 8) {
-  fail(`Seed dataset must remain representative and small, found ${seedRecords.length}.`);
+if (seedRecords.length < 100 || seedRecords.length > 150) {
+  fail(
+    `Seed dataset v1 must contain 100-150 controlled records, found ${seedRecords.length}.`
+  );
 }
 
 const docsPath = "docs/NODRAMA_TAXONOMY_SCHEMA_V2.md";

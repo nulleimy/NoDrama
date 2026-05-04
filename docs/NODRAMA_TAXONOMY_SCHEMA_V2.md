@@ -84,19 +84,47 @@ The canonical record fields are:
 - `channelId`: Locked channel ID.
 - `relationshipId`: Locked relationship ID.
 - `strategyId`: Locked strategy ID.
+- `defaultStrategyId`: Default locked strategy ID for this situation. It must
+  match `strategyId` in seed v1.
 - `riskLevel`: Compact risk enum.
 - `pressureLevel`: Compact pressure enum.
 - `scenarioCategory`: Existing content-depth scenario category.
 - `intent`: Generation intent.
 - `userNeed`: The practical need behind the message.
+- `microSituationText`: Localized high-frequency user situation text.
 - `inputPattern`: Representative user input pattern, not private user data.
 - `safetyNotes`: Required product safety constraints.
+- `recommendedTaxonomies`: Locked channel, relationship and strategy IDs that
+  fit the situation.
+- `blockedTaxonomies`: Strategy IDs or safety policy IDs that must not be used
+  for the situation.
+- `examples`: Concise localized `bad`, `good` and `top` examples for QA and
+  future editorial review.
 - `expectedOutputContract`: Currently `four_reply_variants`.
 - `tags`: Small search/filter tags for QA and future tooling.
 
-The seed sample lives in `lib/nodrama/microSituationSeed.v2.json`. Validation
-lives in `lib/nodrama/taxonomySchemaV2.mjs` and is exercised by
-`scripts/verify-taxonomy-schema-v2.mjs`.
+The seed v1 dataset lives in `lib/nodrama/microSituationSeed.v2.json`.
+Validation lives in `lib/nodrama/taxonomySchemaV2.mjs` and is exercised by
+`scripts/verify-taxonomy-schema-v2.mjs` and
+`scripts/verify-micro-situation-seed-v1.mjs`.
+
+## Seed Dataset V1
+
+Seed v1 is a controlled 100-150 record dataset, not a production-scale corpus.
+It provides bilingual (`cs`, `en`) coverage for high-frequency communication
+situations across the existing content-depth categories:
+
+- `social_plans`
+- `work_commitments`
+- `family_boundaries`
+- `dating_clarity`
+- `service_request`
+
+Each localized record must include truthful situation text, a default strategy,
+risk and pressure levels, recommended locked taxonomy references, blocked safety
+policy references, and concise bad/good/top examples. Bad examples are included
+only as QA contrast cases. They must not be promoted as usable generation
+outputs.
 
 ## Scaling Without UI Chaos
 
@@ -126,13 +154,28 @@ To scale safely:
 - Track coverage by category, relationship, channel, risk and pressure.
 - Add production-sized datasets outside this bundle and review them separately.
 
+Recommended expansion checkpoints:
+
+- 300 situations: Add breadth inside the five existing scenario categories.
+  Require category, locale, channel, relationship, strategy, risk and pressure
+  coverage reports before accepting the dataset.
+- 500 situations: Add editorial review batches by cluster, such as canceling,
+  declining, delaying, repair and boundaries. Keep each batch separately
+  reviewable and require bad/good/top examples for every localized record.
+- 9,000 situations: Treat as a production data program, not a code bundle.
+  Generate and review outside this repository bundle, sample for safety and
+  quality, validate all taxonomy references, and import only after human review.
+  Do not generate 9,000 production situations directly in this repo task.
+
 ## Verification
 
 Run:
 
 ```bash
 node scripts/verify-taxonomy-schema-v2.mjs
+node scripts/verify-micro-situation-seed-v1.mjs
 ```
 
 The verifier checks taxonomy size, duplicate IDs, generator-aligned IDs, compact
-enums, seed dataset schema validity and required documentation guidance.
+enums, seed dataset schema validity, controlled seed size, bilingual balance,
+scenario coverage, taxonomy references and required documentation guidance.
