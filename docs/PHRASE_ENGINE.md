@@ -4,15 +4,44 @@
 
 The mini phrase engine is the first deterministic language engine for NoDrama.
 
-It avoids live AI cost by matching user input to a situation category, mapping UI tone to a reply style, selecting phrases from the curated phrase bank, applying style restrictions, filtering cringe patterns, and avoiding recently used phrase IDs in future iterations.
+It avoids live AI cost by matching user input to a situation category, mapping UI tone to a reply style, selecting phrases from the curated phrase bank, applying style restrictions, filtering cringe patterns, and composing deterministic reply variants.
 
 ## Current flow
 
-input -> category matcher -> UI tone mapper -> channel mapper -> phrase selector -> anti-cringe -> response composer
+input -> category matcher -> UI tone mapper -> channel mapper -> content-depth context -> phrase selector -> anti-cringe -> response composer
+
+## Generator quality v1
+
+The response composer now uses the content-depth context to shape the four existing reply variants without changing the public API.
+
+It keeps the same output keys:
+
+- `shortReply`
+- `naturalReply`
+- `strongReply`
+- `followUpReply`
+
+The composer chooses a deterministic family from the matched situation:
+
+- apology / repair
+- delay / reschedule
+- soft decline
+- boundary
+- client / work message
+
+It also detects whether the situation is likely Czech or English and keeps the generated replies in that language. Tone, channel, relationship and content-depth scenario category influence whether the wording is more informal, formal, warm or firm.
+
+Representative behavior:
+
+- CZ repair: "Omlouvám se..." with ownership and a concrete next step.
+- EN delay: "I need more time..." with realistic timing instead of fake excuses.
+- CZ decline: warm refusal that stays short and copy-paste ready.
+- EN boundary: clear boundary without pressure, diagnosis or manipulation.
+- Client/work: scope, timing and capacity language that avoids unrealistic promises.
 
 ## Current limits
 
-The seed phrase bank is intentionally small.
+The seed phrase bank is intentionally small, but now includes richer CZ/EN phrase patterns for repair, delay, reschedule, decline and boundary families.
 
 Bundle 6 should expand it toward roughly 3000 phrase candidates:
 

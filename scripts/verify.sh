@@ -47,6 +47,11 @@ if [ -f scripts/verify-nodrama-content-depth.mjs ]; then
   node scripts/verify-nodrama-content-depth.mjs
 fi
 
+if [ -f scripts/verify-generator-quality.mjs ]; then
+  echo "==> Generator quality v1"
+  node scripts/verify-generator-quality.mjs
+fi
+
 echo "==> Lint"
 npm run lint
 

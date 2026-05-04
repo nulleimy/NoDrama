@@ -28,6 +28,8 @@ The files in `lib/nodrama/` prepare and wire the middle of that flow:
 
 The existing phrase engine calls the runtime bridge after matching the situation category. The selected content-depth context is attached under the existing response `meta.contentDepth` object.
 
+Generator quality v1 also uses this context during deterministic composition. The composer reads the scenario category, tone preset, channel and safety context to choose concise CZ/EN wording for repair, delay/reschedule, decline, boundary and work/client messages.
+
 ## Public contract impact
 
 No public API contract changes.
@@ -74,3 +76,5 @@ Each tone has CZ/EN labels, usage guidance, risk notes and blocked contexts. Thi
 - The content-depth runtime uses the prompt registry, scenario templates, safety layers, tone presets and audit/debug helper.
 
 It is wired into `npm run verify` through `scripts/verify.sh`.
+
+`scripts/verify-generator-quality.mjs` exercises representative generated replies and checks that the public output keys stay present, text is non-empty, message length remains copy-paste friendly, unsafe/deceptive fragments are absent, English examples stay English and content-depth metadata is still returned.
