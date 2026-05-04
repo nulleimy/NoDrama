@@ -66,6 +66,11 @@ if [ -f scripts/verify-ui-taxonomy-controls.mjs ]; then
   node scripts/verify-ui-taxonomy-controls.mjs
 fi
 
+if [ -f scripts/verify-selector-mixing-ux.mjs ]; then
+  echo "==> Selector mixing UX"
+  node scripts/verify-selector-mixing-ux.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs

@@ -13,6 +13,22 @@ import {
   scenarioTemplates,
   lockedTonePresets,
 } from "@/lib/nodrama";
+import { createNormalizedGenerationContext } from "@/lib/nodrama/selectorMixing.mjs";
+
+type NormalizedGenerationContext = {
+  situation: {
+    scenarioCategory: string;
+  };
+  selectors: {
+    tone: { id: string };
+    relationship: { id: string };
+    channel: { id: string };
+    strategy: { id: string };
+  };
+  matchedMicroSituation: unknown;
+  compatibility: unknown;
+  riskLayer: unknown;
+};
 
 export type ContentDepthRuntimeContext = {
   promptProfileId: string;
@@ -28,19 +44,26 @@ export type ContentDepthRuntimeContext = {
     layerId: string;
     decision: SafetyDecision;
   }[];
+  selectorMixing: NormalizedGenerationContext;
   auditDebug: ReturnType<typeof createContentDepthAuditDebug>;
 };
 
 export function createContentDepthRuntimeContext(
   input: GenerateRequest,
-  category: SituationCategory
+  category: SituationCategory,
+  language: "cs" | "en" = "cs"
 ): ContentDepthRuntimeContext {
+  const selectorMixing = createNormalizedGenerationContext(
+    input,
+    category,
+    language
+  ) as NormalizedGenerationContext;
   const normalized = {
-    category: mapSituationCategory(category),
+    category: normalizeScenarioCategory(selectorMixing.situation.scenarioCategory),
     intent: normalizeIntent(category.intent),
-    relationship: mapRelationship(input.relationship),
-    tone: mapTone(input.tone),
-    channel: mapChannel(input.channel),
+    relationship: mapRelationship(selectorMixing.selectors.relationship.id),
+    tone: mapTone(selectorMixing.selectors.tone.id),
+    channel: mapChannel(selectorMixing.selectors.channel.id),
   };
 
   const scenario = selectScenarioTemplate(normalized);
@@ -69,6 +92,7 @@ export function createContentDepthRuntimeContext(
       layerId: layer.id,
       decision: layer.decision,
     })),
+    selectorMixing,
     auditDebug: createContentDepthAuditDebug(scenario.id),
   };
 }
@@ -93,23 +117,19 @@ function selectScenarioTemplate(normalized: {
     .sort((left, right) => right.score - left.score)[0].scenario;
 }
 
-function mapSituationCategory(
-  category: SituationCategory
+function normalizeScenarioCategory(
+  scenarioCategory: string
 ): ContentDepthScenarioCategory {
-  if (category.domain === "work" || category.domain === "business") {
-    return "work_commitments";
-  }
-
-  if (category.intent === "boundary") {
-    return "family_boundaries";
-  }
-
-  if (category.domain === "digital") {
-    return "dating_clarity";
-  }
-
-  if (category.domain === "money") {
-    return "service_request";
+  if (
+    [
+      "social_plans",
+      "work_commitments",
+      "family_boundaries",
+      "dating_clarity",
+      "service_request",
+    ].includes(scenarioCategory)
+  ) {
+    return scenarioCategory as ContentDepthScenarioCategory;
   }
 
   return "social_plans";
@@ -124,24 +144,27 @@ function normalizeIntent(intent: SituationCategory["intent"]): ContentDepthInten
 }
 
 function mapRelationship(
-  relationship: GenerateRequest["relationship"]
+  relationship: string
 ): ContentDepthRelationship {
-  if (relationship === "Práce") return "work";
-  if (relationship === "Rodina") return "family";
-  if (relationship === "Randění") return "dating";
+  if (relationship === "authority" || relationship === "peer") return "work";
+  if (relationship === "client") return "service";
+  if (relationship === "family") return "family";
+  if (relationship === "partner") return "dating";
   return "friend";
 }
 
-function mapTone(tone: GenerateRequest["tone"]): ContentDepthToneId {
-  if (tone === "Asertivní") return "firm";
-  if (tone === "Formální") return "formal";
-  if (tone === "Vtipný") return "light";
+function mapTone(tone: string): ContentDepthToneId {
+  if (tone === "assertive") return "firm";
+  if (tone === "formal") return "formal";
+  if (tone === "playful") return "light";
+  if (tone === "warm") return "warm";
+  if (tone === "concise") return "brief";
+  if (tone === "neutral") return "calm";
   return "kind";
 }
 
-function mapChannel(channel: GenerateRequest["channel"]): ContentDepthChannel {
-  if (channel === "SMS") return "sms";
-  if (channel === "E-mail") return "email";
-  if (channel === "Slack") return "slack";
+function mapChannel(channel: string): ContentDepthChannel {
+  if (channel === "email") return "email";
+  if (channel === "work_chat" || channel === "professional_dm") return "slack";
   return "whatsapp";
 }

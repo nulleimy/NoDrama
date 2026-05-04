@@ -24,10 +24,10 @@ export function InteractiveGenerator() {
     cs: {
       situation: "Situace",
       generate: "Vygenerovat odpověď",
-      tone: "TÓN",
-      relationship: "VZTAH",
-      channel: "KANÁL",
-      strategy: "STRATEGIE",
+      tone: "Jak to má znít?",
+      relationship: "Pro koho to je?",
+      channel: "Kde to pošleš nebo řekneš?",
+      strategy: "Co se snažíš udělat?",
       best: "Nejlepší odpověď",
       copy: "Kopírovat",
       placeholder: "Popiš situaci..."
@@ -35,10 +35,10 @@ export function InteractiveGenerator() {
     en: {
       situation: "Situation",
       generate: "Generate reply",
-      tone: "TONE",
-      relationship: "RELATIONSHIP",
-      channel: "CHANNEL",
-      strategy: "STRATEGY",
+      tone: "How should it sound?",
+      relationship: "Who is it for?",
+      channel: "Where will you send or say it?",
+      strategy: "What are you trying to do?",
       best: "Best pick",
       copy: "Copy",
       placeholder: "Describe the situation..."

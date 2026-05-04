@@ -4,6 +4,7 @@ import { selectPhrases } from "@/lib/language/phraseSelector";
 import { composeReplyVariants, detectReplyLanguage } from "@/lib/language/replyComposer";
 import { matchSituationCategory } from "@/lib/language/situationMatcher";
 import { mapUiToneToReplyStyle } from "@/lib/language/toneMap";
+import type { ReplyChannel, ReplyStyle } from "@/lib/language/phraseTypes";
 import {
   createContentDepthRuntimeContext,
   type ContentDepthRuntimeContext,
@@ -28,10 +29,19 @@ export function generatePhraseEngineReply(
   };
 } {
   const match = matchSituationCategory(input.situation);
-  const style = mapUiToneToReplyStyle(input.tone);
-  const channel = mapUiChannelToReplyChannel(input.channel);
-  const contentDepth = createContentDepthRuntimeContext(input, match.category);
   const language = detectReplyLanguage(input);
+  const contentDepth = createContentDepthRuntimeContext(
+    input,
+    match.category,
+    language
+  );
+  const style =
+    mapSelectorToneToReplyStyle(contentDepth.selectorMixing.selectors.tone.id) ||
+    mapUiToneToReplyStyle(input.tone);
+  const channel =
+    mapSelectorChannelToReplyChannel(
+      contentDepth.selectorMixing.selectors.channel.id
+    ) || mapUiChannelToReplyChannel(input.channel);
 
   const selection = selectPhrases({
     intent: match.category.intent,
@@ -75,4 +85,21 @@ export function generatePhraseEngineReply(
       contentDepth,
     },
   };
+}
+
+function mapSelectorToneToReplyStyle(toneId: string): ReplyStyle | null {
+  if (toneId === "formal") return "formal";
+  if (toneId === "assertive") return "firm";
+  if (toneId === "playful") return "funny";
+  if (toneId === "neutral") return "neutral";
+  return "casual";
+}
+
+function mapSelectorChannelToReplyChannel(channelId: string): ReplyChannel | null {
+  if (channelId === "email") return "email";
+  if (channelId === "work_chat" || channelId === "professional_dm") {
+    return "slack";
+  }
+
+  return "whatsapp";
 }
