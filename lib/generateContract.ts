@@ -8,6 +8,45 @@ export const generateRequestSchema = z.object({
   tone: z.enum(["Milý", "Asertivní", "Formální", "Vtipný"]),
   relationship: z.enum(["Kamarádi", "Práce", "Rodina", "Randění"]),
   channel: z.enum(["WhatsApp", "SMS", "E-mail", "Slack"]),
+  toneId: z
+    .enum(["kind", "direct", "formal", "light", "warm", "firm", "calm", "brief"])
+    .optional(),
+  relationshipId: z
+    .enum([
+      "friend",
+      "work",
+      "family",
+      "dating",
+      "service",
+      "group",
+      "partner",
+      "acquaintance",
+    ])
+    .optional(),
+  channelId: z
+    .enum([
+      "whatsapp",
+      "sms",
+      "email",
+      "slack",
+      "messenger",
+      "instagram_dm",
+      "signal",
+      "teams",
+    ])
+    .optional(),
+  strategyId: z
+    .enum([
+      "truthful_boundary",
+      "direct_boundary",
+      "repair_accountability",
+      "delay_update",
+      "decline_capacity",
+      "clarify_intent",
+      "reschedule_option",
+      "brief_exit",
+    ])
+    .optional(),
 });
 
 export type GenerateRequest = z.infer<typeof generateRequestSchema>;

@@ -4,8 +4,8 @@
     "title": "Cancel dinner plans",
     "locale": "en",
     "sourceCategoryId": "social_cancel_plan",
-    "channelId": "whatsapp",
-    "relationshipId": "friend",
+    "channelId": "messenger",
+    "relationshipId": "partner",
     "strategyId": "truthful_boundary",
     "defaultStrategyId": "truthful_boundary",
     "riskLevel": "low",
@@ -22,10 +22,10 @@
     ],
     "recommendedTaxonomies": {
       "channelIds": [
-        "whatsapp"
+        "messenger"
       ],
       "relationshipIds": [
-        "friend"
+        "partner"
       ],
       "strategyIds": [
         "truthful_boundary"
@@ -49,7 +49,7 @@
     "tags": [
       "social-plans",
       "cancel",
-      "friend",
+      "partner",
       "truthful-boundary"
     ]
   },
@@ -58,8 +58,8 @@
     "title": "Zrušit večeři",
     "locale": "cs",
     "sourceCategoryId": "social_cancel_plan",
-    "channelId": "whatsapp",
-    "relationshipId": "friend",
+    "channelId": "instagram_dm",
+    "relationshipId": "partner",
     "strategyId": "truthful_boundary",
     "defaultStrategyId": "truthful_boundary",
     "riskLevel": "low",
@@ -76,10 +76,10 @@
     ],
     "recommendedTaxonomies": {
       "channelIds": [
-        "whatsapp"
+        "instagram_dm"
       ],
       "relationshipIds": [
-        "friend"
+        "partner"
       ],
       "strategyIds": [
         "truthful_boundary"
@@ -103,7 +103,7 @@
     "tags": [
       "social-plans",
       "cancel",
-      "friend",
+      "partner",
       "truthful-boundary"
     ]
   },
@@ -112,8 +112,8 @@
     "title": "Decline a party invitation",
     "locale": "en",
     "sourceCategoryId": "social_cancel_party",
-    "channelId": "sms",
-    "relationshipId": "friend",
+    "channelId": "signal",
+    "relationshipId": "acquaintance",
     "strategyId": "decline_capacity",
     "defaultStrategyId": "decline_capacity",
     "riskLevel": "low",
@@ -130,10 +130,10 @@
     ],
     "recommendedTaxonomies": {
       "channelIds": [
-        "sms"
+        "signal"
       ],
       "relationshipIds": [
-        "friend"
+        "acquaintance"
       ],
       "strategyIds": [
         "decline_capacity"
@@ -157,7 +157,7 @@
     "tags": [
       "social-plans",
       "decline",
-      "friend",
+      "acquaintance",
       "decline-capacity"
     ]
   },
@@ -166,8 +166,8 @@
     "title": "Odmítnout pozvání na oslavu",
     "locale": "cs",
     "sourceCategoryId": "social_cancel_party",
-    "channelId": "sms",
-    "relationshipId": "friend",
+    "channelId": "teams",
+    "relationshipId": "acquaintance",
     "strategyId": "decline_capacity",
     "defaultStrategyId": "decline_capacity",
     "riskLevel": "low",
@@ -184,10 +184,10 @@
     ],
     "recommendedTaxonomies": {
       "channelIds": [
-        "sms"
+        "teams"
       ],
       "relationshipIds": [
-        "friend"
+        "acquaintance"
       ],
       "strategyIds": [
         "decline_capacity"
@@ -211,7 +211,7 @@
     "tags": [
       "social-plans",
       "decline",
-      "friend",
+      "acquaintance",
       "decline-capacity"
     ]
   },
