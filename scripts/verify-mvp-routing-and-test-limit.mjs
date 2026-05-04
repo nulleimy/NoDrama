@@ -191,7 +191,7 @@ const scenarios = [
       relationship: "friend",
       channel: "messenger_1to1",
       domain: "social",
-      warning: "fake_alibi_request_blocked",
+      warning: "anti_deception_truthful_reply_preferred",
     },
   },
   {
