@@ -53,7 +53,12 @@ function assertEveryLockedTaxonomyCovered(records) {
     const covered = new Set(records.map((record) => record[field]));
 
     for (const item of taxonomy) {
-      if (!covered.has(item.id)) {
+      const compatibleIds = [item.id, ...(item.legacyIds || [])];
+
+      if (
+        item.legacyIds?.length > 0 &&
+        !compatibleIds.some((id) => covered.has(id))
+      ) {
         fail(`Seed dataset does not cover locked ${field}: ${item.id}`);
       }
     }

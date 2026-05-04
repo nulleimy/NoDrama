@@ -31,13 +31,11 @@ function assertMaxEight(name, taxonomy) {
   }
 }
 
-function assertIncludes(name, taxonomy, ids) {
-  const availableIds = new Set(taxonomy.map((item) => item.id));
+function assertExactIds(name, taxonomy, ids) {
+  const availableIds = taxonomy.map((item) => item.id);
 
-  for (const id of ids) {
-    if (!availableIds.has(id)) {
-      fail(`${name} taxonomy is missing existing generator ID: ${id}.`);
-    }
+  if (availableIds.join(",") !== ids.join(",")) {
+    fail(`${name} taxonomy IDs do not match the final locked taxonomy.`);
   }
 }
 
@@ -45,17 +43,35 @@ assertMaxEight("channel", lockedChannelTaxonomyV2);
 assertMaxEight("relationship", lockedRelationshipTaxonomyV2);
 assertMaxEight("strategy", lockedStrategyTaxonomyV2);
 
-assertIncludes("channel", lockedChannelTaxonomyV2, [
-  "whatsapp",
-  "sms",
+assertExactIds("channel", lockedChannelTaxonomyV2, [
+  "messenger_1to1",
+  "group_chat",
   "email",
-  "slack",
+  "work_chat",
+  "professional_dm",
+  "social_dm",
+  "voice_call",
+  "face_to_face",
 ]);
-assertIncludes("relationship", lockedRelationshipTaxonomyV2, [
+assertExactIds("relationship", lockedRelationshipTaxonomyV2, [
+  "authority",
+  "peer",
+  "client",
   "friend",
-  "work",
+  "close_friend",
+  "partner",
   "family",
-  "dating",
+  "stranger_public",
+]);
+assertExactIds("strategy", lockedStrategyTaxonomyV2, [
+  "delay",
+  "soft_decline",
+  "hard_boundary",
+  "redirect",
+  "repair",
+  "exit",
+  "negotiate",
+  "clarify",
 ]);
 
 for (const level of ["low", "medium", "high"]) {
@@ -96,7 +112,7 @@ if (!existsSync(docsPath)) {
 const docs = readFileSync(docsPath, "utf8");
 
 for (const requiredText of [
-  "No public API contract changes",
+  "API request ID compatibility is expanded",
   "Do not generate 9,000 production situations",
   "category -> cluster -> micro-situation",
   "UI chaos",
