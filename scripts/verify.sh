@@ -61,6 +61,11 @@ if [ -f scripts/verify-micro-situation-seed-v1.mjs ]; then
   node scripts/verify-micro-situation-seed-v1.mjs
 fi
 
+if [ -f scripts/verify-ui-taxonomy-controls.mjs ]; then
+  echo "==> Public generator UI taxonomy controls"
+  node scripts/verify-ui-taxonomy-controls.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs

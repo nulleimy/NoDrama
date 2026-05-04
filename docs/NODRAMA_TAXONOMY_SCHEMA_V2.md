@@ -21,8 +21,9 @@ dataset is intentionally small and representative.
 
 ## Locked Taxonomies
 
-Each locked taxonomy must stay at max 8 IDs. IDs are stable, lowercase and
-machine-facing. Labels may be localized later without changing the ID.
+Each locked taxonomy must stay at exactly 8 IDs once exposed in the public
+generator controls. IDs are stable, lowercase and machine-facing. Public control
+labels are localized in Czech and English without changing the ID.
 
 ### Channel
 
@@ -32,6 +33,10 @@ The channel IDs align with the existing generator/content-depth contract:
 - `sms`
 - `email`
 - `slack`
+- `messenger`
+- `instagram_dm`
+- `signal`
+- `teams`
 
 ### Relationship
 
@@ -44,6 +49,8 @@ through the content-depth normalization layer:
 - `dating`
 - `service`
 - `group`
+- `partner`
+- `acquaintance`
 
 ### Strategy
 
