@@ -56,6 +56,11 @@ if [ -f scripts/verify-taxonomy-schema-v2.mjs ]; then
   node scripts/verify-taxonomy-schema-v2.mjs
 fi
 
+if [ -f scripts/verify-micro-situation-seed-v1.mjs ]; then
+  echo "==> NoDrama micro-situation seed v1"
+  node scripts/verify-micro-situation-seed-v1.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs
