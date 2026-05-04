@@ -76,6 +76,11 @@ if [ -f scripts/verify-selector-mixing-ux.mjs ]; then
   node scripts/verify-selector-mixing-ux.mjs
 fi
 
+if [ -f scripts/verify-mvp-routing-and-test-limit.mjs ]; then
+  echo "==> MVP routing and local test limit"
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-mvp-routing-and-test-limit.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs

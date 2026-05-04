@@ -16,6 +16,8 @@ import {
 import { createNormalizedGenerationContext } from "@/lib/nodrama/selectorMixing.mjs";
 
 type NormalizedGenerationContext = {
+  inferredDomain: string;
+  safetyWarnings: string[];
   situation: {
     scenarioCategory: string;
     intent: string;

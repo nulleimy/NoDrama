@@ -4,11 +4,12 @@ import { selectPhrases } from "@/lib/language/phraseSelector";
 import { composeReplyVariants, detectReplyLanguage } from "@/lib/language/replyComposer";
 import { matchSituationCategory } from "@/lib/language/situationMatcher";
 import { mapUiToneToReplyStyle } from "@/lib/language/toneMap";
-import type { ReplyChannel, ReplyStyle } from "@/lib/language/phraseTypes";
+import type { ReplyChannel, ReplyIntent, ReplyStyle } from "@/lib/language/phraseTypes";
 import {
   createContentDepthRuntimeContext,
   type ContentDepthRuntimeContext,
 } from "@/lib/nodrama/contentDepthRuntime";
+import { mapSelectorStrategyToIntent } from "@/lib/nodrama/selectorMixing.mjs";
 
 export function generatePhraseEngineReply(
   input: GenerateRequest,
@@ -42,9 +43,12 @@ export function generatePhraseEngineReply(
     mapSelectorChannelToReplyChannel(
       contentDepth.selectorMixing.selectors.channel.id
     ) || mapUiChannelToReplyChannel(input.channel);
+  const intent = mapStrategyToPhraseIntent(
+    contentDepth.selectorMixing.selectors.strategy.id
+  );
 
   const selection = selectPhrases({
-    intent: match.category.intent,
+    intent,
     domain: match.category.domain,
     style,
     channel,
@@ -85,6 +89,18 @@ export function generatePhraseEngineReply(
       contentDepth,
     },
   };
+}
+
+function mapStrategyToPhraseIntent(strategyId: string): ReplyIntent {
+  const strategyIntent = mapSelectorStrategyToIntent(strategyId);
+
+  if (strategyIntent === "repair") return "apology";
+  if (strategyIntent === "soft_exit") return "soft_exit";
+  if (strategyIntent === "boundary") return "boundary";
+  if (strategyIntent === "negotiate") return "negotiate";
+  if (strategyIntent === "clarify") return "clarify";
+  if (strategyIntent === "delay") return "delay";
+  return "decline";
 }
 
 function mapSelectorToneToReplyStyle(toneId: string): ReplyStyle | null {

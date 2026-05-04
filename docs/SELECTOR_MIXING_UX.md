@@ -11,15 +11,16 @@ Each selector group keeps exactly 8 public options. The UI still sends the exist
 
 ## Runtime Flow
 
-Selector mixing follows the NoDrama generation flow:
+Selector mixing feeds the MVP generation flow:
 
 ```text
-Scenario Intake
--> Context Normalization
--> Safety Check
--> Tone/Intent Selection
--> Output Generator
--> Review/Audit
+User text
+-> Fast Context Router
+-> Suggested selectors
+-> Micro-situation candidate
+-> Phrase composer
+-> Safety gate
+-> Output
 ```
 
 The normalization layer combines:
@@ -93,7 +94,7 @@ Older API clients may omit the newer selector IDs. In that case, the mixer deriv
 - Channel defaults from relationship: authority/peer -> `work_chat`, client -> `email`, otherwise `messenger_1to1`.
 - Tone defaults from strategy first, then professional context: repair -> `apologetic`, hard boundary -> `assertive`, soft decline -> `soft`, delay -> `concise`, email/client/authority -> `formal`, otherwise `neutral`.
 
-Explicit selector IDs override legacy request values and bias inference. For example, a text that looks social but has `relationshipId: "client"` is treated as a business/service context.
+Explicit selector IDs override legacy request values and bias inference. The API also accepts nested `selectorMixing.selected` IDs as explicit selections for compatibility with selector-first clients. For example, a text that looks social but has `relationshipId: "client"` is treated as a business/service context.
 
 ## Heuristic Routing
 
@@ -103,6 +104,7 @@ Routing is intentionally fast and heuristic, not a full ML scorer.
 - Relationship selectors can override domain inference because they express direct user intent.
 - Strategy selectors steer the scenario intent used by the composer.
 - Micro-situation candidates are chosen by simple overlap across locale, scenario family, strategy, relationship, channel and input text.
+- A matched micro-situation can enrich metadata when confidence is medium or high, but it does not override an incompatible explicit strategy.
 - Confidence is compact: `high`, `medium` or `low`.
 
 Playful tone is treated as safe lightness, not comedy. It is downgraded to a soft tone for authority, client, money, family pressure, serious repair, hard boundary and high-risk conflict contexts. The downgrade is recorded under `safetyWarnings`.
