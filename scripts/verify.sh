@@ -86,6 +86,11 @@ if [ -f scripts/verify-safety-polarity-domain-phrases.mjs ]; then
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-safety-polarity-domain-phrases.mjs
 fi
 
+if [ -f scripts/verify-extended-qa-polish.mjs ]; then
+  echo "==> Extended QA polish"
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-extended-qa-polish.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs

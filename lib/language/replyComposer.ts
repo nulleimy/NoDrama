@@ -37,6 +37,7 @@ const englishSignals = [
   "apologize",
   "sorry",
   "client",
+  "partner",
   "deadline",
   "meeting",
   "call",
@@ -54,6 +55,11 @@ const englishSignals = [
   "i need",
   "i want",
   "i don't",
+  "replied",
+  "sharply",
+  "repair",
+  "over-explain",
+  "overexplaining",
 ];
 
 const czechSignals = [
@@ -228,7 +234,7 @@ function composeEnglish(
   isFirm: boolean
 ) {
   if (family === "work") return composeEnglishWork(input, isFormal, isFirm);
-  if (family === "repair") return composeEnglishRepair(isFormal, isFirm);
+  if (family === "repair") return composeEnglishRepair(input, isFormal, isFirm);
   if (family === "negotiate") {
     return composeEnglishNegotiate(input, isFormal, isFirm);
   }
@@ -330,7 +336,23 @@ function composeCzechRepair(isFormal: boolean, isFirm: boolean) {
   };
 }
 
-function composeEnglishRepair(isFormal: boolean, isFirm: boolean) {
+function composeEnglishRepair(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  if (isPartnerRepairContext(input)) {
+    return {
+      shortReply: "I’m sorry I replied too sharply. That’s on me.",
+      naturalReply:
+        "I’m sorry I replied too sharply. That’s on me. I don’t want to over-explain it; I just want to repair the tone and handle this better.",
+      strongReply:
+        "I replied too sharply, and I’m taking responsibility for that. I want to repair the tone and handle this better.",
+      followUpReply:
+        "If more detail is needed: “I don’t want to over-explain it. I just want to own my tone and do better.”",
+    };
+  }
+
   return {
     shortReply: "I’m sorry — that’s on me. I’ll fix it with a clear next step.",
     naturalReply: isFormal
@@ -350,6 +372,18 @@ function composeCzechNegotiate(
   isFirm: boolean
 ) {
   const isClient = input.contentDepth.selectorMixing.selectors.relationship.id === "client";
+
+  if (isFamilyNegotiateContext(input)) {
+    return {
+      shortReply: "Celý víkend nedám, ale zvládnu jedno odpoledne.",
+      naturalReply:
+        "Celý víkend nedám, ale zvládnu jedno odpoledne. Pojďme vybrat, co je nejdůležitější.",
+      strongReply:
+        "Celý víkend nedám. Můžu nabídnout jedno odpoledne, a potřebuju, abychom podle toho vybrali prioritu.",
+      followUpReply:
+        "Kdyby přišel tlak: „Rozumím, že bys chtěl/a víc, ale celý víkend slíbit nemůžu.“",
+    };
+  }
 
   return {
     shortReply: isClient
@@ -372,6 +406,18 @@ function composeEnglishNegotiate(
   isFirm: boolean
 ) {
   const isClient = input.contentDepth.selectorMixing.selectors.relationship.id === "client";
+
+  if (isFamilyNegotiateContext(input)) {
+    return {
+      shortReply: "I can’t do the whole weekend, but I can do one afternoon.",
+      naturalReply:
+        "I can’t do the whole weekend, but I can do one afternoon. Let’s choose the time that matters most.",
+      strongReply:
+        "I can’t commit to the whole weekend. I can offer one afternoon, and we need to choose the priority around that.",
+      followUpReply:
+        "If guilt pressure continues: “I understand you wanted more time, but I can’t promise the whole weekend.”",
+    };
+  }
 
   return {
     shortReply: isClient
@@ -467,6 +513,18 @@ function composeCzechBoundary(
   isFormal: boolean,
   isFirm: boolean
 ) {
+  if (isPartnerBoundaryContext(input)) {
+    return {
+      shortReply: "Tohle téma teď dál otevírat nechci.",
+      naturalReply:
+        "Tohle téma teď dál otevírat nechci. Už jsem řekla, kde stojím, a potřebuju, abychom to teď nechali být.",
+      strongReply:
+        "Svoje stanovisko neměním. Nechci to dál otevírat a potřebuju, abychom to teď nechali být.",
+      followUpReply:
+        "Kdyby se téma vracelo: „Rozumím, že se k tomu chceš vracet, ale já v tomhle teď pokračovat nechci.“",
+    };
+  }
+
   if (isSocialBoundaryContext(input)) {
     return {
       shortReply: "Už jsem říkala, že nepřijdu. Prosím respektuj to.",
@@ -512,6 +570,31 @@ function composeEnglishBoundary(
   isFormal: boolean,
   isFirm: boolean
 ) {
+  if (isAfterHoursWorkBoundaryContext(input)) {
+    return {
+      shortReply:
+        "I can respond during working hours, but I’m not available after hours.",
+      naturalReply:
+        "I can respond during working hours, but I’m not available for ongoing after-hours replies.",
+      strongReply:
+        "I’m available during working hours. I’m not available for ongoing after-hours replies.",
+      followUpReply:
+        "If it continues: “Please send it through the work channel and I’ll respond during working hours.”",
+    };
+  }
+
+  if (isPartnerBoundaryContext(input)) {
+    return {
+      shortReply: "I don’t want to keep reopening this topic.",
+      naturalReply:
+        "I don’t want to keep reopening this topic. I’ve said where I stand, and I need us to leave it here for now.",
+      strongReply:
+        "I’ve said where I stand. I’m not reopening this topic, and I need us to leave it here for now.",
+      followUpReply:
+        "If it comes up again: “I understand you want to revisit it, but I’m not continuing this conversation right now.”",
+    };
+  }
+
   if (isSocialBoundaryContext(input)) {
     return {
       shortReply: "I already said I can’t come. Please respect that.",
@@ -671,12 +754,64 @@ function isSocialBoundaryContext(input: ComposerInput) {
   );
 }
 
+function isPartnerBoundaryContext(input: ComposerInput) {
+  const relationshipId = input.contentDepth.selectorMixing.selectors.relationship.id;
+
+  return (
+    ["partner", "dating"].includes(relationshipId) ||
+    input.contentDepth.selectorMixing.inferredDomain === "dating" ||
+    input.contentDepth.scenarioCategory === "dating_clarity"
+  );
+}
+
+function isPartnerRepairContext(input: ComposerInput) {
+  const normalized = normalizeSituation(input.request.situation);
+
+  return (
+    isPartnerBoundaryContext(input) &&
+    /\b(replied|reply|said|tone|sharply|sharp|overexplain|over explaining|over explain)\b/.test(
+      normalized
+    )
+  );
+}
+
+function isAfterHoursWorkBoundaryContext(input: ComposerInput) {
+  const relationshipId = input.contentDepth.selectorMixing.selectors.relationship.id;
+  const channelId = input.contentDepth.selectorMixing.selectors.channel.id;
+  const normalized = normalizeSituation(input.request.situation);
+
+  return (
+    (["authority", "peer"].includes(relationshipId) ||
+      ["work_chat", "professional_dm"].includes(channelId) ||
+      input.contentDepth.selectorMixing.inferredDomain === "work") &&
+    /\b(after hours|afterhours|off hours|offhours|outside working hours|outside work hours|working hours)\b/.test(
+      normalized
+    )
+  );
+}
+
+function isFamilyNegotiateContext(input: ComposerInput) {
+  return (
+    isFamilyDeclineContext(input) &&
+    input.contentDepth.selectorMixing.selectors.strategy.id === "negotiate"
+  );
+}
+
 function isFamilyDeclineContext(input: ComposerInput) {
   return (
     input.contentDepth.selectorMixing.selectors.relationship.id === "family" ||
     input.contentDepth.selectorMixing.inferredDomain === "family" ||
     input.contentDepth.scenarioCategory === "family_boundaries"
   );
+}
+
+function normalizeSituation(text: string) {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’']/g, "")
+    .replace(/[-_]/g, " ");
 }
 
 function composeCzechDecline(
