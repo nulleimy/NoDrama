@@ -161,6 +161,9 @@ const generateRequestBaseSchema = z.object({
     .string()
     .min(8, "Popiš situaci trochu konkrétněji.")
     .max(800, "Situace je moc dlouhá. Zkrať ji prosím."),
+  locale: z.enum(["cs", "en"]).optional(),
+  appLocale: z.enum(["cs", "en"]).optional(),
+  requestLocale: z.enum(["cs", "en"]).optional(),
   tone: legacyToneSchema.optional(),
   relationship: legacyRelationshipSchema.optional(),
   channel: legacyChannelSchema.optional(),

@@ -1,6 +1,7 @@
 import type { GenerateRequest, GenerateResponse } from "@/lib/generateContract";
 import { mapUiChannelToReplyChannel } from "@/lib/language/channelMap";
 import { selectPhrases } from "@/lib/language/phraseSelector";
+import { realizeReplyVariants, resolveRealizerLocale } from "@/lib/language/phraseRealizer";
 import { composeReplyVariants, detectReplyLanguage } from "@/lib/language/replyComposer";
 import { matchSituationCategory } from "@/lib/language/situationMatcher";
 import { mapUiToneToReplyStyle } from "@/lib/language/toneMap";
@@ -30,7 +31,8 @@ export function generatePhraseEngineReply(
   };
 } {
   const match = matchSituationCategory(input.situation);
-  const language = detectReplyLanguage(input);
+  const detectedLanguage = detectReplyLanguage(input);
+  const language = resolveRealizerLocale(input, detectedLanguage);
   const contentDepth = createContentDepthRuntimeContext(
     input,
     match.category,
@@ -55,7 +57,7 @@ export function generatePhraseEngineReply(
     language,
   });
 
-  const output = composeReplyVariants({
+  const composedOutput = composeReplyVariants({
     request: input,
     category: match.category,
     language,
@@ -65,6 +67,15 @@ export function generatePhraseEngineReply(
     selectedPhrases: selection.selected,
     fallbackUsed: selection.fallbackUsed,
     blockedReason: selection.blockedReason,
+  });
+  const output = realizeReplyVariants({
+    request: input,
+    category: match.category,
+    language,
+    style,
+    channel,
+    contentDepth,
+    composed: composedOutput,
   });
 
   return {

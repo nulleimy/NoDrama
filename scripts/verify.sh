@@ -36,6 +36,11 @@ if [ -f scripts/verify-phrase-quality.mjs ]; then
   node scripts/verify-phrase-quality.mjs
 fi
 
+if [ -f scripts/verify-phrase-realizer-flexibility.mjs ]; then
+  echo "==> Phrase realizer flexibility"
+  node scripts/verify-phrase-realizer-flexibility.mjs
+fi
+
 if [ -f scripts/verify-monetization-layer.mjs ]; then
   echo "==> Monetization layer"
   node scripts/verify-monetization-layer.mjs
@@ -49,6 +54,11 @@ fi
 if [ -f scripts/verify-admin-analytics-security.mjs ]; then
   echo "==> Admin analytics security"
   node scripts/verify-admin-analytics-security.mjs
+fi
+
+if [ -f scripts/verify-devops-foundation.mjs ]; then
+  echo "==> DevOps foundation"
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-devops-foundation.mjs
 fi
 
 if [ -f scripts/verify-nodrama-content-depth.mjs ]; then

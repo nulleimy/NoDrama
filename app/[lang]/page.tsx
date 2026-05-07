@@ -5,79 +5,14 @@ import { PricingCards } from "@/components/PricingCards";
 import { CreditPacks } from "@/components/CreditPacks";
 import { useLang } from "@/components/i18n/LanguageProvider";
 
-const useCasesCs = [
-  "odmítnutí schůzky",
-  "zpoždění",
-  "pracovní omluva",
-  "rodinné hranice",
-  "klientský delay",
-  "nepříjemný follow-up",
-];
-
-const useCasesEn = [
-  "declining a meeting",
-  "being late",
-  "work excuse",
-  "family boundaries",
-  "client delay",
-  "awkward follow-up",
-];
-
 export default function Home() {
   const { lang } = useLang();
   const isCs = lang === "cs";
-  const useCases = isCs ? useCasesCs : useCasesEn;
 
   return (
-    <main className="min-h-screen bg-neutral-50 text-neutral-950">
-      <section className="mx-auto grid max-w-7xl gap-12 px-6 py-10 md:grid-cols-[1fr_0.9fr] md:px-10 md:py-20">
-        <div className="flex flex-col justify-center">
-          <div className="inline-flex w-fit rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm">
-            {isCs
-              ? "NoDrama Reply · AI komunikace bez trapna"
-              : "NoDrama Reply · AI communication without awkwardness"}
-          </div>
-
-          <h1 className="mt-8 max-w-4xl text-5xl font-black tracking-tight md:text-7xl">
-            {isCs
-              ? "Řekni NE!! Posuň termín. Odpověz bez dramatu."
-              : "Say NO!! Reschedule. Reply without drama."}
-          </h1>
-
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-neutral-650">
-            {isCs
-              ? "NoDrama generuje krátké, přirozené a sociálně bezpečné odpovědi pro situace, kdy nechceš znít tvrdě, trapně nebo podezřele. Žádné velké lži. Jen čistá komunikace."
-              : "NoDrama creates short, natural and socially safe replies for moments when you do not want to sound harsh, awkward or suspicious. No big lies. Just clean communication."}
-          </p>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a
-              className="rounded-2xl bg-black px-6 py-4 text-center text-sm font-bold text-white hover:bg-neutral-800"
-              href="#generator"
-            >
-              {isCs ? "Vyzkoušet demo" : "Try demo"}
-            </a>
-            <a
-              className="rounded-2xl border border-neutral-300 bg-white px-6 py-4 text-center text-sm font-bold text-neutral-950 hover:bg-neutral-100"
-              href="#pricing"
-            >
-              {isCs ? "Zobrazit ceny" : "See pricing"}
-            </a>
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-2">
-            {useCases.map((item) => (
-              <span
-                key={item}
-                className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm text-neutral-700"
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div id="generator">
+    <main className="min-h-screen bg-[#F6F7FB] text-neutral-950">
+      <section className="bg-[linear-gradient(180deg,#111827_0%,#F6F7FB_88%)] px-4 py-4 sm:px-6 sm:py-6 md:px-10">
+        <div id="generator" className="mx-auto max-w-7xl">
           <InteractiveGenerator />
         </div>
       </section>
