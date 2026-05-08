@@ -41,7 +41,7 @@ export function GeneratorPreview() {
           className="mt-5 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold text-black"
           type="button"
         >
-          Vygenerovat odpověď
+          Složit odpověď
         </button>
       </div>
 

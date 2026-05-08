@@ -26,6 +26,9 @@ export function CreditPacks({ compact = false }: { compact?: boolean }) {
           </div>
 
           <p className="mt-3 text-sm leading-6 text-neutral-600">{pack.description}</p>
+          <p className="mt-2 text-sm font-semibold text-neutral-950">
+            {pack.credits} situace · {pack.validity}
+          </p>
 
           <button
             type="button"

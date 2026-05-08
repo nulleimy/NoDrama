@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { useLang } from "@/components/i18n/LanguageProvider";
 import { PaywallBox } from "@/components/PaywallBox";
-import type {
-  GenerateErrorResponse,
-  GenerateResponse,
-} from "@/lib/generateContract";
+import type { GenerateErrorResponse, GenerateResponse } from "@/lib/generateContract";
 import { publicGeneratorTaxonomyControls } from "@/lib/nodrama/uiTaxonomyControls.mjs";
 
 type SelectorGroup = "tone" | "relationship" | "channel" | "strategy";
@@ -38,7 +35,7 @@ const copy = {
     channel: "Kde to pošleš nebo řekneš?",
     optional: "Volitelné upřesnění",
     optionalHint: "Kanál pomůže upravit délku a míru formálnosti.",
-    generate: "Vygenerovat odpověď",
+    generate: "Složit odpověď",
     loading: "Skládám nejlepší formulaci…",
     copy: "Kopírovat",
     copied: "Zkopírováno",
@@ -69,7 +66,7 @@ const copy = {
     channel: "Where will you send or say it?",
     optional: "Optional refinement",
     optionalHint: "Channel helps tune length and formality.",
-    generate: "Generate reply",
+    generate: "Write reply",
     loading: "Writing the best version…",
     copy: "Copy",
     copied: "Copied",
@@ -88,12 +85,7 @@ const copy = {
   },
 };
 
-const resultOrder: ResultKey[] = [
-  "shortReply",
-  "naturalReply",
-  "strongReply",
-  "followUpReply",
-];
+const resultOrder: ResultKey[] = ["shortReply", "naturalReply", "strongReply", "followUpReply"];
 
 export function InteractiveGenerator() {
   const { lang } = useLang();
@@ -145,8 +137,7 @@ export function InteractiveGenerator() {
         return;
       }
 
-      const message =
-        data.code === "FREE_LIMIT_EXCEEDED" ? t.freeLimit : data.message;
+      const message = data.code === "FREE_LIMIT_EXCEEDED" ? t.freeLimit : data.message;
 
       setResult(null);
       setError({ code: data.code, message });
@@ -180,17 +171,10 @@ export function InteractiveGenerator() {
     <section className="relative overflow-hidden rounded-[2rem] bg-[#0B1020] px-4 py-5 text-[#F7F8FF] shadow-2xl shadow-slate-950/20 sm:px-6 sm:py-7 lg:px-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(141,92,255,0.26),transparent_32%),radial-gradient(circle_at_90%_0%,rgba(255,79,179,0.2),transparent_30%),linear-gradient(135deg,rgba(77,163,255,0.14),transparent_45%)]" />
       <div className="relative mx-auto max-w-5xl space-y-6">
-        <GeneratorHero
-          eyebrow={t.eyebrow}
-          headline={t.headline}
-          subheadline={t.subheadline}
-        />
+        <GeneratorHero eyebrow={t.eyebrow} headline={t.headline} subheadline={t.subheadline} />
 
         <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.07] p-4 shadow-xl shadow-black/20 backdrop-blur sm:p-5">
-          <label
-            htmlFor="generator-situation"
-            className="text-sm font-bold text-white"
-          >
+          <label htmlFor="generator-situation" className="text-sm font-bold text-white">
             {t.inputLabel}
           </label>
           <textarea
@@ -221,9 +205,7 @@ export function InteractiveGenerator() {
               label={t[group]}
               lang={lang}
               selectedId={selected[group]}
-              onSelect={(id) =>
-                setSelected((current) => ({ ...current, [group]: id }))
-              }
+              onSelect={(id) => setSelected((current) => ({ ...current, [group]: id }))}
             />
           ))}
         </div>
@@ -243,9 +225,7 @@ export function InteractiveGenerator() {
                 id={`generator-channel-${option.id}`}
                 isActive={selected.channel === option.id}
                 label={option.label[lang]}
-                onClick={() =>
-                  setSelected((current) => ({ ...current, channel: option.id }))
-                }
+                onClick={() => setSelected((current) => ({ ...current, channel: option.id }))}
                 secondary
               />
             ))}
@@ -294,16 +274,11 @@ export function InteractiveGenerator() {
             </div>
 
             <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.045] p-4 text-xs text-[#B9C0E0]">
-              <p className="font-bold uppercase tracking-[0.2em] text-[#DDE2FF]">
-                {t.detected}
-              </p>
+              <p className="font-bold uppercase tracking-[0.2em] text-[#DDE2FF]">{t.detected}</p>
               <dl className="mt-3 grid gap-3 sm:grid-cols-4">
                 <ContextItem label={t.language} value={lang.toUpperCase()} />
                 <ContextItem label={t.strategy} value={selectedContext.strategy} />
-                <ContextItem
-                  label={t.relationship}
-                  value={selectedContext.relationship}
-                />
+                <ContextItem label={t.relationship} value={selectedContext.relationship} />
                 <ContextItem label={t.channel} value={selectedContext.channel} />
               </dl>
             </div>
@@ -338,9 +313,7 @@ function GeneratorHero({
       <h1 className="mt-5 text-4xl font-black leading-[1.02] tracking-normal text-white sm:text-5xl lg:text-6xl">
         {headline}
       </h1>
-      <p className="mt-4 max-w-2xl text-base leading-7 text-[#B9C0E0] sm:text-lg">
-        {subheadline}
-      </p>
+      <p className="mt-4 max-w-2xl text-base leading-7 text-[#B9C0E0] sm:text-lg">{subheadline}</p>
     </div>
   );
 }
@@ -399,8 +372,8 @@ function SelectorChip({
         isActive
           ? "border-[#35E0C3]/80 bg-[#35E0C3] text-[#07101C] shadow-lg shadow-[#35E0C3]/20"
           : secondary
-          ? "border-white/10 bg-white/[0.05] text-[#DDE2FF] hover:border-white/25 hover:bg-white/[0.08]"
-          : "border-white/12 bg-white/[0.08] text-[#DDE2FF] hover:border-[#8D5CFF]/60 hover:bg-white/[0.12]"
+            ? "border-white/10 bg-white/[0.05] text-[#DDE2FF] hover:border-white/25 hover:bg-white/[0.08]"
+            : "border-white/12 bg-white/[0.08] text-[#DDE2FF] hover:border-[#8D5CFF]/60 hover:bg-white/[0.12]"
       }`}
     >
       <span aria-hidden={isActive} className={isActive ? "mr-1" : "hidden"}>
@@ -429,9 +402,7 @@ function ResultCard({
   return (
     <article className="flex min-h-64 flex-col rounded-[1.35rem] border border-white/12 bg-white/[0.08] p-4 shadow-xl shadow-black/20">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-sm font-black uppercase tracking-[0.16em] text-[#35E0C3]">
-          {label}
-        </h2>
+        <h2 className="text-sm font-black uppercase tracking-[0.16em] text-[#35E0C3]">{label}</h2>
         <button
           type="button"
           aria-label={copyAriaLabel}
@@ -441,9 +412,7 @@ function ResultCard({
           {copyLabel}
         </button>
       </div>
-      <p className="mt-4 flex-1 whitespace-pre-wrap text-base leading-7 text-[#F7F8FF]">
-        {text}
-      </p>
+      <p className="mt-4 flex-1 whitespace-pre-wrap text-base leading-7 text-[#F7F8FF]">{text}</p>
       <div className="mt-5 flex flex-wrap gap-2">
         {microActions.map((action) => (
           <button

@@ -27,7 +27,7 @@ export function PricingCards() {
             </div>
             {plan.highlighted ? (
               <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-black">
-                Best
+                {plan.badge}
               </span>
             ) : null}
           </div>

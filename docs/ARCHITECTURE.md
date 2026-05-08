@@ -52,10 +52,10 @@ NoDrama is a small SaaS product for generating socially safe replies, apologies,
 
 | Plan | Price | Limit |
 |---|---:|---:|
-| Free | 0 Kč | 2-3 generations/day |
-| Starter | 79 Kč/month | 100 generations/month |
-| Pro | 149 Kč/month | 500 generations/month |
-| Power | 299 Kč/month | 2000 generations/month |
+| Free | 0 Kč | 2 situations free, then 1 situation/week |
+| Starter | 79 Kč/month | 20 situations/month |
+| Pro | 149 Kč/month | 45 situations/month |
+| Power | 299 Kč/month | 100 situations/month |
 
 ## Safety Design
 

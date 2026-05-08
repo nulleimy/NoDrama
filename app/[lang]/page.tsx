@@ -24,9 +24,7 @@ export default function Home() {
               {isCs ? "Pravidla produktu" : "Product rules"}
             </p>
             <h2 className="mt-3 text-3xl font-bold">
-              {isCs
-                ? "Ne výmluvy. Sociální navigace."
-                : "Not excuses. Social navigation."}
+              {isCs ? "Ne výmluvy. Sociální navigace." : "Not excuses. Social navigation."}
             </h2>
           </div>
           <p className="text-base leading-7 text-neutral-600">
@@ -36,8 +34,8 @@ export default function Home() {
           </p>
           <p className="text-base leading-7 text-neutral-600">
             {isCs
-              ? "Free plán je schválně přísný: 2 generace denně. Kdo má hodnotu, narazí na paywall rychle. Kdo ji nemá, nespálí nám API budget."
-              : "The free plan is intentionally strict: 2 generations per day. People who feel the value reach the paywall quickly. People who do not will not burn API budget."}
+              ? "Free plán je schválně jednoduchý: 2 situace zdarma a potom 1 situace týdně. Platí se za vyřešenou zprávu, ne za klikání."
+              : "The free plan is intentionally simple: 2 free situations, then 1 situation per week. You pay for a solved message, not clicks."}
           </p>
         </div>
       </section>
@@ -49,31 +47,32 @@ export default function Home() {
           </p>
           <h2 className="mt-3 text-4xl font-black tracking-tight">
             {isCs
-              ? "Jednoduché limity. Žádné unlimited peklo."
-              : "Simple limits. No unlimited nonsense."}
+              ? "Když nevíš, co napsat, NoDrama to řekne za tebe."
+              : "When you do not know what to write, NoDrama says it for you."}
           </h2>
           <p className="mt-4 text-lg leading-8 text-neutral-600">
             {isCs
-              ? "AI náklady jsou variabilní, takže pricing stojí na kreditech a fair-use limitech. Hlavní plán je Pro za 149 Kč měsíčně."
-              : "AI costs are variable, so pricing is based on credits and fair-use limits. The main plan is Pro for 149 CZK per month."}
+              ? "1 situace = hotová odpověď + varianty tónu + rychlé doladění. Lidsky, stručně a bez průšvihu."
+              : "1 situation = a finished reply + tone variants + quick refinement. Human, concise and lower-risk."}
           </p>
         </div>
 
         <PricingCards />
 
-        <div id="credit-packs" className="mt-12 rounded-[2rem] border border-neutral-200 bg-white p-6">
+        <div
+          id="credit-packs"
+          className="mt-12 rounded-[2rem] border border-neutral-200 bg-white p-6"
+        >
           <p className="text-sm font-bold uppercase tracking-[0.25em] text-neutral-500">
             {isCs ? "Jednorázové balíčky" : "One-time packs"}
           </p>
           <h3 className="mt-3 text-3xl font-black tracking-tight">
-            {isCs
-              ? "Nechceš subscription? Kup si jen odpovědi."
-              : "No subscription? Just buy replies."}
+            {isCs ? "Akutní chvíle bez subscription." : "Urgent moments without a subscription."}
           </h3>
           <p className="mt-3 max-w-2xl text-base leading-7 text-neutral-600">
             {isCs
-              ? "Mikro balíčky jsou určené pro impulsní nákup přesně ve chvíli, kdy dojdou free odpovědi."
-              : "Micro packs are made for impulse purchases exactly when free replies run out."}
+              ? "SOS balíčky jsou pro momenty, kdy potřebuješ méně trapně, víc lidsky a bez zbytečného vysvětlování odpovědět hned."
+              : "SOS packs are for moments when you need a less awkward, more human reply without overexplaining."}
           </p>
           <div className="mt-6">
             <CreditPacks />
