@@ -35,6 +35,17 @@ export function generatePhraseEngineReply(
     recommendedId?: string;
     scores: { id: string; score: number; reasons: string[] }[];
     contentDepth: ContentDepthRuntimeContext;
+    replyIntelligence: {
+      detectedContext: ReturnType<typeof detectReplyContext>;
+      intentConflict: ReturnType<typeof detectIntentConflict>;
+      routeOverride: ReturnType<typeof resolveScenarioRoute>;
+      qaByVariant: {
+        shortReply: ReturnType<typeof runReplyQa>;
+        naturalReply: ReturnType<typeof runReplyQa>;
+        strongReply: ReturnType<typeof runReplyQa>;
+        followUpReply: ReturnType<typeof runReplyQa>;
+      };
+    };
   };
 } {
   const match = matchSituationCategory(input.situation);
@@ -93,6 +104,7 @@ export function generatePhraseEngineReply(
     channel,
     contentDepth,
     composed: composedOutput,
+    detectedScenarioFamily: detectedContext.scenarioFamily,
   });
 
   const qaByVariant = {
