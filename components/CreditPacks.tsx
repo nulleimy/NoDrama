@@ -3,6 +3,12 @@
 import { trackEvent } from "@/lib/analytics/trackEvent";
 import { creditPacks } from "@/lib/monetization";
 
+function formatSituationCount(count: number) {
+  if (count === 1) return "1 situace";
+  if (count >= 2 && count <= 4) return `${count} situace`;
+  return `${count} situací`;
+}
+
 export function CreditPacks({ compact = false }: { compact?: boolean }) {
   return (
     <div className={compact ? "grid gap-3" : "grid gap-3 md:grid-cols-3"}>
@@ -17,6 +23,9 @@ export function CreditPacks({ compact = false }: { compact?: boolean }) {
               <p className="mt-1 text-2xl font-black tracking-tight text-neutral-950">
                 {pack.price}
               </p>
+              <p className="mt-1 text-sm font-semibold text-neutral-600">
+                {formatSituationCount(pack.credits)}
+              </p>
             </div>
             {pack.badge ? (
               <span className="rounded-full bg-neutral-950 px-3 py-1 text-xs font-bold text-white">
@@ -26,6 +35,9 @@ export function CreditPacks({ compact = false }: { compact?: boolean }) {
           </div>
 
           <p className="mt-3 text-sm leading-6 text-neutral-600">{pack.description}</p>
+          <p className="mt-2 text-xs font-bold uppercase tracking-wide text-neutral-500">
+            Platí {pack.validForDays} dní
+          </p>
 
           <button
             type="button"

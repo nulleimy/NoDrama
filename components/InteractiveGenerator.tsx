@@ -1,20 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useLang } from "@/components/i18n/LanguageProvider";
 import { PaywallBox } from "@/components/PaywallBox";
 import type {
   GenerateErrorResponse,
   GenerateResponse,
 } from "@/lib/generateContract";
+import { detectReplyContext } from "@/lib/nodrama/replyIntelligence.mjs";
+import type {
+  ReplyDetectedContext,
+  ReplyQaResult,
+  SelectedSource,
+} from "@/lib/nodrama/replyIntelligenceTypes";
 import { publicGeneratorTaxonomyControls } from "@/lib/nodrama/uiTaxonomyControls.mjs";
 
 type SelectorGroup = "tone" | "relationship" | "channel" | "strategy";
 type ResultKey = keyof GenerateResponse["output"];
+type FeedbackRating =
+  | "good"
+  | "bad"
+  | "wrong_context"
+  | "too_formal"
+  | "too_harsh"
+  | "too_fake"
+  | "not_sendable";
 
 type GeneratorError = {
   code?: GenerateErrorResponse["code"];
   message: string;
+};
+
+type ReplyIntelligenceMeta = {
+  contentDepth?: {
+    selectorMixing?: {
+      replyIntelligence?: {
+        detectedContext?: ReplyDetectedContext;
+        selectedSources?: Record<SelectorGroup, SelectedSource>;
+      };
+    };
+  };
+  replyQa?: ReplyQaResult;
+};
+
+type MemoryRecord = {
+  id: string;
+  createdAt: string;
+  language: "cs" | "en";
+  userInputPreview: string;
+  userInputHash?: string;
+  selectedContext: {
+    toneId: string;
+    relationshipId: string;
+    channelId: string;
+    strategyId: string;
+    source?: SelectedSource;
+  };
+  inferredContext: {
+    domain: string;
+    scenarioFamily: string;
+    confidence: string;
+    reasons: string[];
+    warnings: string[];
+  };
+  qa?: ReplyQaResult;
+  outputPreview?: string;
+  userFeedback?: {
+    rating: FeedbackRating;
+    note?: string;
+  };
 };
 
 const primaryGroups: SelectorGroup[] = ["tone", "relationship", "strategy"];
@@ -22,6 +77,8 @@ const helperChips = {
   cs: ["Auto-detekce kontextu", "Chytrý tón", "Bez dramatu"],
   en: ["Auto-detect context", "Smart tone", "No drama"],
 };
+
+const memoryStorageKey = "nodrama.replyMemory.v1";
 
 const copy = {
   cs: {
@@ -45,6 +102,16 @@ const copy = {
     microActions: ["Jemnější", "Ráznější", "Kratší"],
     detected: "Rozpoznaný kontext",
     language: "Jazyk",
+    suggested: "Navrženo podle textu",
+    manual: "Ručně upraveno",
+    defaultSource: "Výchozí volba",
+    lowConfidence: "Nízká jistota — zkontroluj výběr",
+    scenario: "Scénář",
+    confidence: "Jistota",
+    memoryClear: "Vymazat Memory Lane",
+    privateMode: "Soukromý režim",
+    privateModeOn: "Memory Lane vypnutá",
+    feedbackSaved: "Uloženo do Memory Lane",
     freeLimit: "Free limit pro dnešek je vyčerpaný.",
     errorTitle: "Tuhle odpověď se nepovedlo složit.",
     errorHint: "Zkus upravit zadání nebo to za chvíli poslat znovu.",
@@ -53,6 +120,15 @@ const copy = {
       naturalReply: "Přirozená",
       strongReply: "Ráznější",
       followUpReply: "Když budou tlačit dál",
+    },
+    feedback: {
+      good: "Použitelné",
+      bad: "Mimo",
+      wrong_context: "Špatný kontext",
+      too_formal: "Moc formální",
+      too_harsh: "Moc ostré",
+      too_fake: "Zní trapně",
+      not_sendable: "Neposlal/a bych",
     },
   },
   en: {
@@ -76,6 +152,16 @@ const copy = {
     microActions: ["Softer", "Stronger", "Shorter"],
     detected: "Detected context",
     language: "Language",
+    suggested: "Suggested from text",
+    manual: "Manually adjusted",
+    defaultSource: "Default choice",
+    lowConfidence: "Low confidence — check selection",
+    scenario: "Scenario",
+    confidence: "Confidence",
+    memoryClear: "Clear Memory Lane",
+    privateMode: "Private mode",
+    privateModeOn: "Memory Lane off",
+    feedbackSaved: "Saved to Memory Lane",
     freeLimit: "Your free limit is used for today.",
     errorTitle: "This reply could not be written.",
     errorHint: "Try adjusting the situation or send it again in a moment.",
@@ -84,6 +170,15 @@ const copy = {
       naturalReply: "Natural",
       strongReply: "Strong",
       followUpReply: "Follow-up",
+    },
+    feedback: {
+      good: "Usable",
+      bad: "Off",
+      wrong_context: "Wrong context",
+      too_formal: "Too formal",
+      too_harsh: "Too harsh",
+      too_fake: "Sounds fake",
+      not_sendable: "Not sendable",
     },
   },
 };
@@ -101,9 +196,13 @@ export function InteractiveGenerator() {
 
   const [input, setInput] = useState("");
   const [result, setResult] = useState<GenerateResponse["output"] | null>(null);
+  const [resultMeta, setResultMeta] = useState<ReplyIntelligenceMeta | null>(null);
   const [error, setError] = useState<GeneratorError | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copiedKey, setCopiedKey] = useState<ResultKey | null>(null);
+  const [feedbackSaved, setFeedbackSaved] = useState<FeedbackRating | null>(null);
+  const [activeMemoryId, setActiveMemoryId] = useState<string | null>(null);
+  const [privateMode, setPrivateMode] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [selected, setSelected] = useState<Record<SelectorGroup, string>>({
     tone: publicGeneratorTaxonomyControls.tone[0].id,
@@ -111,10 +210,68 @@ export function InteractiveGenerator() {
     channel: publicGeneratorTaxonomyControls.channel[0].id,
     strategy: publicGeneratorTaxonomyControls.strategy[0].id,
   });
+  const [selectedSources, setSelectedSources] = useState<
+    Record<SelectorGroup, SelectedSource>
+  >({
+    tone: "default",
+    relationship: "default",
+    channel: "default",
+    strategy: "default",
+  });
+  const [detectedContext, setDetectedContext] =
+    useState<ReplyDetectedContext | null>(null);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      if (input.trim().length < 8) {
+        setDetectedContext(null);
+        return;
+      }
+
+      const detected = detectReplyContext(input, {
+        toneId: selected.tone,
+        relationshipId: selected.relationship,
+        channelId: selected.channel,
+        strategyId: selected.strategy,
+      }) as ReplyDetectedContext;
+      setDetectedContext(detected);
+      setSelected((current) => {
+        const suggestions: Record<SelectorGroup, string> = {
+          tone: detected.toneSuggestion,
+          relationship: detected.relationshipSuggestion,
+          channel: detected.channelSuggestion,
+          strategy: detected.strategySuggestion,
+        };
+        const next = { ...current };
+        const sourceUpdates: Partial<Record<SelectorGroup, SelectedSource>> = {};
+
+        for (const group of Object.keys(suggestions) as SelectorGroup[]) {
+          if (
+            selectedSources[group] !== "manual" &&
+            getSelectedOption(group, suggestions[group]) &&
+            (current[group] !== suggestions[group] ||
+              selectedSources[group] !== "auto")
+          ) {
+            next[group] = suggestions[group];
+            sourceUpdates[group] = "auto";
+          }
+        }
+
+        if (Object.keys(sourceUpdates).length > 0) {
+          setSelectedSources((sources) => ({ ...sources, ...sourceUpdates }));
+        }
+
+        return next;
+      });
+    }, 250);
+
+    return () => window.clearTimeout(handle);
+  }, [input, selected.channel, selected.relationship, selected.strategy, selected.tone, selectedSources]);
 
   const generate = async () => {
     setIsLoading(true);
     setError(null);
+    setFeedbackSaved(null);
     setShowPaywall(false);
 
     const tone = getSelectedOption("tone", selected.tone);
@@ -135,6 +292,7 @@ export function InteractiveGenerator() {
           relationshipId: relationship.id,
           channelId: channel.id,
           strategyId: strategy.id,
+          selectorSources: selectedSources,
         }),
       });
 
@@ -142,6 +300,23 @@ export function InteractiveGenerator() {
 
       if (data.ok) {
         setResult(data.output);
+        setResultMeta((data.meta || null) as ReplyIntelligenceMeta | null);
+        const memoryId = privateMode
+          ? null
+          : persistMemoryRecord({
+              input,
+              lang,
+              selected,
+              selectedSources,
+              detected:
+                ((data.meta as ReplyIntelligenceMeta | undefined)?.contentDepth
+                  ?.selectorMixing?.replyIntelligence
+                  ?.detectedContext as ReplyDetectedContext | undefined) ||
+                detectedContext,
+              qa: (data.meta as ReplyIntelligenceMeta | undefined)?.replyQa,
+              output: data.output,
+            });
+        setActiveMemoryId(memoryId);
         return;
       }
 
@@ -149,10 +324,12 @@ export function InteractiveGenerator() {
         data.code === "FREE_LIMIT_EXCEEDED" ? t.freeLimit : data.message;
 
       setResult(null);
+      setResultMeta(null);
       setError({ code: data.code, message });
       setShowPaywall(data.code === "FREE_LIMIT_EXCEEDED");
     } catch {
       setResult(null);
+      setResultMeta(null);
       setError({
         message:
           lang === "cs"
@@ -162,6 +339,13 @@ export function InteractiveGenerator() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const markFeedback = (rating: FeedbackRating) => {
+    if (!activeMemoryId || privateMode) return;
+
+    updateMemoryFeedback(activeMemoryId, rating);
+    setFeedbackSaved(rating);
   };
 
   const copyResult = async (key: ResultKey, text: string) => {
@@ -175,6 +359,9 @@ export function InteractiveGenerator() {
     relationship: getSelectedOption("relationship", selected.relationship).label[lang],
     channel: getSelectedOption("channel", selected.channel).label[lang],
   };
+  const effectiveDetectedContext =
+    resultMeta?.contentDepth?.selectorMixing?.replyIntelligence?.detectedContext ||
+    detectedContext;
 
   return (
     <section className="relative overflow-hidden rounded-[2rem] bg-[#0B1020] px-4 py-5 text-[#F7F8FF] shadow-2xl shadow-slate-950/20 sm:px-6 sm:py-7 lg:px-8">
@@ -205,12 +392,33 @@ export function InteractiveGenerator() {
             {helperChips[lang].map((chip) => (
               <span
                 key={chip}
-                className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-semibold text-[#DDE2FF]"
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                  chip === helperChips[lang][0] && detectedContext
+                    ? "border-[#35E0C3]/55 bg-[#35E0C3]/15 text-[#AFFFF1]"
+                    : "border-white/10 bg-white/[0.08] text-[#DDE2FF]"
+                }`}
               >
                 {chip}
               </span>
             ))}
           </div>
+
+          {detectedContext && (
+            <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.05] p-3 text-xs leading-5 text-[#DDE2FF]">
+              <div className="flex flex-wrap gap-2">
+                <AutoHint label={t.scenario} value={detectedContext.scenarioFamily} />
+                <AutoHint label={t.confidence} value={detectedContext.confidence} />
+                {detectedContext.confidence === "low" && (
+                  <span className="rounded-full border border-[#FFD166]/35 bg-[#FFD166]/10 px-2.5 py-1 font-bold text-[#FFE9A6]">
+                    {t.lowConfidence}
+                  </span>
+                )}
+              </div>
+              {detectedContext.warnings.length > 0 && (
+                <p className="mt-2 text-[#FFE9A6]">{detectedContext.warnings[0]}</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
@@ -221,9 +429,8 @@ export function InteractiveGenerator() {
               label={t[group]}
               lang={lang}
               selectedId={selected[group]}
-              onSelect={(id) =>
-                setSelected((current) => ({ ...current, [group]: id }))
-              }
+              sourceLabel={sourceLabel(selectedSources[group], t)}
+              onSelect={(id) => selectManually(group, id, setSelected, setSelectedSources)}
             />
           ))}
         </div>
@@ -244,7 +451,7 @@ export function InteractiveGenerator() {
                 isActive={selected.channel === option.id}
                 label={option.label[lang]}
                 onClick={() =>
-                  setSelected((current) => ({ ...current, channel: option.id }))
+                  selectManually("channel", option.id, setSelected, setSelectedSources)
                 }
                 secondary
               />
@@ -260,6 +467,22 @@ export function InteractiveGenerator() {
         >
           {isLoading ? t.loading : t.generate}
         </button>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.045] p-4 text-xs text-[#B9C0E0]">
+          <label className="inline-flex cursor-pointer items-center gap-2 font-bold text-[#DDE2FF]">
+            <input
+              type="checkbox"
+              checked={privateMode}
+              onChange={(event) => {
+                setPrivateMode(event.target.checked);
+                if (event.target.checked) setActiveMemoryId(null);
+              }}
+              className="h-4 w-4 rounded border-white/20 bg-white/[0.08] accent-[#35E0C3]"
+            />
+            {t.privateMode}
+          </label>
+          <span>{privateMode ? t.privateModeOn : "Memory Lane"}</span>
+        </div>
 
         {error && (
           <div
@@ -289,8 +512,27 @@ export function InteractiveGenerator() {
                   copyAriaLabel={`${t.copy}: ${t.resultLabels[key]}`}
                   microActions={t.microActions}
                   onCopy={() => copyResult(key, result[key])}
+                  feedbackLabels={t.feedback}
+                  onFeedback={markFeedback}
                 />
               ))}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.045] p-4 text-xs text-[#B9C0E0]">
+              <span>
+                {privateMode
+                  ? t.privateModeOn
+                  : feedbackSaved
+                  ? t.feedbackSaved
+                  : "Memory Lane"}
+              </span>
+              <button
+                type="button"
+                onClick={clearMemoryLane}
+                className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 font-bold text-[#DDE2FF] transition hover:bg-white/[0.1]"
+              >
+                {t.memoryClear}
+              </button>
             </div>
 
             <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.045] p-4 text-xs text-[#B9C0E0]">
@@ -299,6 +541,10 @@ export function InteractiveGenerator() {
               </p>
               <dl className="mt-3 grid gap-3 sm:grid-cols-4">
                 <ContextItem label={t.language} value={lang.toUpperCase()} />
+                <ContextItem
+                  label={t.scenario}
+                  value={effectiveDetectedContext?.scenarioFamily || "unknown"}
+                />
                 <ContextItem label={t.strategy} value={selectedContext.strategy} />
                 <ContextItem
                   label={t.relationship}
@@ -351,16 +597,19 @@ function SelectorSection({
   lang,
   selectedId,
   onSelect,
+  sourceLabel,
 }: {
   group: SelectorGroup;
   label: string;
   lang: "cs" | "en";
   selectedId: string;
   onSelect: (id: string) => void;
+  sourceLabel: string;
 }) {
   return (
     <fieldset className="rounded-[1.35rem] border border-white/10 bg-white/[0.055] p-4">
       <legend className="px-1 text-sm font-bold text-white">{label}</legend>
+      <p className="mt-1 text-xs font-semibold text-[#B9C0E0]">{sourceLabel}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {publicGeneratorTaxonomyControls[group].map((option) => (
           <SelectorChip
@@ -418,6 +667,8 @@ function ResultCard({
   copyAriaLabel,
   microActions,
   onCopy,
+  feedbackLabels,
+  onFeedback,
 }: {
   label: string;
   text: string;
@@ -425,7 +676,18 @@ function ResultCard({
   copyAriaLabel: string;
   microActions: string[];
   onCopy: () => void;
+  feedbackLabels: Record<FeedbackRating, string>;
+  onFeedback: (rating: FeedbackRating) => void;
 }) {
+  const feedbackOrder: FeedbackRating[] = [
+    "good",
+    "bad",
+    "wrong_context",
+    "too_formal",
+    "too_harsh",
+    "too_fake",
+  ];
+
   return (
     <article className="flex min-h-64 flex-col rounded-[1.35rem] border border-white/12 bg-white/[0.08] p-4 shadow-xl shadow-black/20">
       <div className="flex items-start justify-between gap-3">
@@ -445,17 +707,18 @@ function ResultCard({
         {text}
       </p>
       <div className="mt-5 flex flex-wrap gap-2">
-        {microActions.map((action) => (
+        {feedbackOrder.map((rating) => (
           <button
-            key={action}
+            key={rating}
             type="button"
-            disabled
-            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-[#B9C0E0] opacity-60"
+            onClick={() => onFeedback(rating)}
+            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-[#B9C0E0] transition hover:border-[#35E0C3]/50 hover:text-white"
           >
-            {action}
+            {feedbackLabels[rating]}
           </button>
         ))}
       </div>
+      <div className="sr-only">{microActions.join(", ")}</div>
     </article>
   );
 }
@@ -469,9 +732,115 @@ function ContextItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+function AutoHint({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1">
+      <span className="font-bold text-[#B9C0E0]">{label}: </span>
+      <span className="text-[#F7F8FF]">{value}</span>
+    </span>
+  );
+}
+
 function getSelectedOption(group: SelectorGroup, id: string) {
   return (
     publicGeneratorTaxonomyControls[group].find((option) => option.id === id) ||
     publicGeneratorTaxonomyControls[group][0]
   );
+}
+
+function selectManually(
+  group: SelectorGroup,
+  id: string,
+  setSelected: Dispatch<SetStateAction<Record<SelectorGroup, string>>>,
+  setSelectedSources: Dispatch<SetStateAction<Record<SelectorGroup, SelectedSource>>>
+) {
+  setSelected((current) => ({ ...current, [group]: id }));
+  setSelectedSources((current) => ({ ...current, [group]: "manual" }));
+}
+
+function sourceLabel(
+  source: SelectedSource,
+  labels: { suggested: string; manual: string; defaultSource: string }
+) {
+  if (source === "auto") return labels.suggested;
+  if (source === "manual") return labels.manual;
+  return labels.defaultSource;
+}
+
+function persistMemoryRecord({
+  input,
+  lang,
+  selected,
+  selectedSources,
+  detected,
+  qa,
+  output,
+}: {
+  input: string;
+  lang: "cs" | "en";
+  selected: Record<SelectorGroup, string>;
+  selectedSources: Record<SelectorGroup, SelectedSource>;
+  detected: ReplyDetectedContext | null;
+  qa?: ReplyQaResult;
+  output: GenerateResponse["output"];
+}) {
+  const record: MemoryRecord = {
+    id: createMemoryId(),
+    createdAt: new Date().toISOString(),
+    language: lang,
+    userInputPreview: input.trim().slice(0, 180),
+    userInputHash: hashPreview(input),
+    selectedContext: {
+      toneId: selected.tone,
+      relationshipId: selected.relationship,
+      channelId: selected.channel,
+      strategyId: selected.strategy,
+      source: selectedSources.strategy,
+    },
+    inferredContext: {
+      domain: detected?.domain || "unknown",
+      scenarioFamily: detected?.scenarioFamily || "unknown",
+      confidence: detected?.confidence || "low",
+      reasons: detected?.reasons || [],
+      warnings: detected?.warnings || [],
+    },
+    qa,
+    outputPreview: output.naturalReply.slice(0, 220),
+  };
+  const records = readMemoryRecords();
+  const next = [record, ...records].slice(0, 30);
+  window.localStorage.setItem(memoryStorageKey, JSON.stringify(next));
+  return record.id;
+}
+
+function updateMemoryFeedback(id: string, rating: FeedbackRating) {
+  const records = readMemoryRecords();
+  const next = records.map((record) =>
+    record.id === id ? { ...record, userFeedback: { rating } } : record
+  );
+  window.localStorage.setItem(memoryStorageKey, JSON.stringify(next));
+}
+
+function readMemoryRecords(): MemoryRecord[] {
+  try {
+    return JSON.parse(window.localStorage.getItem(memoryStorageKey) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function clearMemoryLane() {
+  window.localStorage.removeItem(memoryStorageKey);
+}
+
+function createMemoryId() {
+  return `mem_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function hashPreview(input: string) {
+  let hash = 0;
+  for (const char of input) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return hash.toString(16);
 }

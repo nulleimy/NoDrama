@@ -102,10 +102,14 @@ export function composeReplyVariants(
   const strategyIntent = mapSelectorStrategyToIntent(
     input.contentDepth.selectorMixing.selectors.strategy.id
   );
+  const scenarioFamily =
+    input.contentDepth.selectorMixing.replyIntelligence?.detectedContext
+      ?.scenarioFamily || input.contentDepth.selectorMixing.inferredScenarioFamily;
   const family = resolveReplyFamily(
     input.contentDepth.selectorMixing.selectors.strategy.id,
     strategyIntent as ReplyIntent,
-    input.category.domain
+    input.category.domain,
+    scenarioFamily
   );
   const isFormal = isFormalContext(input);
   const isFirm = isFirmContext(input);
@@ -176,8 +180,24 @@ function composeSafetyDegradedReply(
 function resolveReplyFamily(
   strategyId: string,
   intent: ReplyIntent,
-  domain: SituationCategory["domain"]
+  domain: SituationCategory["domain"],
+  scenarioFamily?: string
 ): ReplyFamily {
+  if (
+    [
+      "work_social_invitation",
+      "authority_social_decline",
+      "social_invitation_decline",
+    ].includes(scenarioFamily || "")
+  ) {
+    return "decline";
+  }
+
+  if (scenarioFamily === "work_deadline_delay") return "delay";
+  if (scenarioFamily === "client_scope_negotiation") return "negotiate";
+  if (scenarioFamily === "money_refuse_loan") return "boundary";
+  if (scenarioFamily === "family_pressure_boundary") return "boundary";
+  if (scenarioFamily === "repair_after_mistake") return "repair";
   if (strategyId === "repair") return "repair";
   if (strategyId === "soft_decline") return "decline";
   if (strategyId === "hard_boundary") return "boundary";

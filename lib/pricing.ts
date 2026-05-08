@@ -3,6 +3,7 @@ export type PricingPlan = {
   price: string;
   description: string;
   limit: string;
+  badge?: string;
   highlighted?: boolean;
   features: string[];
 };
@@ -11,52 +12,52 @@ export const pricingPlans: PricingPlan[] = [
   {
     name: "Free",
     price: "0 Kč",
-    description: "Na rychlé vyzkoušení bez závazku.",
-    limit: "2 generace denně",
+    description: "Na vyzkoušení pro první nepříjemné zprávy.",
+    limit: "2 situace zdarma, potom 1 situace týdně",
     features: [
-      "Základní odpověď",
-      "Krátká verze zprávy",
-      "Čeština",
-      "Bez historie",
+      "Základní tóny",
+      "Hotová odpověď s variantami",
+      "Rychlé doladění",
+      "Bez historie, nebo historie jen 24 h",
     ],
   },
   {
     name: "Starter",
     price: "79 Kč / měsíc",
-    description: "Pro občasné použití v práci, škole i běžném životě.",
-    limit: "100 generací měsíčně",
+    description: "Pro občasné zprávy, kdy nechceš přestřelit tón.",
+    limit: "20 situací měsíčně",
     features: [
-      "Krátká i přirozená verze",
+      "Pro občasné zprávy",
       "Základní tóny",
-      "Historie 30 dní",
+      "Stručnější odpovědi bez overexplainingu",
       "SMS / WhatsApp / e-mail styl",
     ],
   },
   {
     name: "Pro",
     price: "149 Kč / měsíc",
-    description: "Hlavní plán pro lidi, kteří chtějí rychle a elegantně odpovídat.",
-    limit: "500 generací měsíčně",
+    description: "Hlavní plán pro práci, dating i citlivé konverzace.",
+    limit: "45 situací měsíčně",
+    badge: "Nejčastější volba",
     highlighted: true,
     features: [
       "Všechny tóny",
-      "Follow-up odpovědi",
-      "Relationship režimy",
-      "Make it less awkward",
-      "Make it more believable",
+      "Follow-up doladění",
+      "Historie",
+      "Work / dating / client režimy",
+      "Méně trapně a víc lidsky",
     ],
   },
   {
     name: "Power",
     price: "299 Kč / měsíc",
-    description: "Pro heavy users, freelancery a lidi, kteří řeší hodně komunikace.",
-    limit: "2 000 generací měsíčně",
+    description: "Pro časté pracovní, klientské a dating situace.",
+    limit: "100 situací měsíčně",
     features: [
-      "Neomezená historie",
-      "Pracovní šablony",
-      "Dating šablony",
-      "Klientské šablony",
-      "Prioritní generování",
+      "Šablony",
+      "Uložené profily",
+      "Work / clients / dating heavy use",
+      "Více opakovaných komunikačních situací",
     ],
   },
 ];

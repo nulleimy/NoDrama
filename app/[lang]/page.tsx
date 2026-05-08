@@ -36,8 +36,8 @@ export default function Home() {
           </p>
           <p className="text-base leading-7 text-neutral-600">
             {isCs
-              ? "Free plán je schválně přísný: 2 generace denně. Kdo má hodnotu, narazí na paywall rychle. Kdo ji nemá, nespálí nám API budget."
-              : "The free plan is intentionally strict: 2 generations per day. People who feel the value reach the paywall quickly. People who do not will not burn API budget."}
+              ? "NoDrama pomáhá říct pravdu lidsky, stručně a bez průšvihu. Není to generátor falešných alibi ani nástroj na manipulaci."
+              : "NoDrama helps you say the truth in a human, concise and safer way. It is not a fake-alibi generator or manipulation tool."}
           </p>
         </div>
       </section>
@@ -49,13 +49,13 @@ export default function Home() {
           </p>
           <h2 className="mt-3 text-4xl font-black tracking-tight">
             {isCs
-              ? "Jednoduché limity. Žádné unlimited peklo."
-              : "Simple limits. No unlimited nonsense."}
+              ? "Platíš za vyřešenou situaci, ne za klikání."
+              : "Pay for a solved situation, not raw clicks."}
           </h2>
           <p className="mt-4 text-lg leading-8 text-neutral-600">
             {isCs
-              ? "AI náklady jsou variabilní, takže pricing stojí na kreditech a fair-use limitech. Hlavní plán je Pro za 149 Kč měsíčně."
-              : "AI costs are variable, so pricing is based on credits and fair-use limits. The main plan is Pro for 149 CZK per month."}
+              ? "1 situace = hotová odpověď + varianty tónu + rychlé doladění. Hlavní plán je Pro za 149 Kč měsíčně."
+              : "1 situation = finished reply + tone variants + quick tuning. The main plan is Pro for 149 CZK per month."}
           </p>
         </div>
 
@@ -67,13 +67,13 @@ export default function Home() {
           </p>
           <h3 className="mt-3 text-3xl font-black tracking-tight">
             {isCs
-              ? "Nechceš subscription? Kup si jen odpovědi."
-              : "No subscription? Just buy replies."}
+              ? "SOS balíčky pro chvíle, kdy odpověď hoří."
+              : "SOS packs for moments when the reply cannot wait."}
           </h3>
           <p className="mt-3 max-w-2xl text-base leading-7 text-neutral-600">
             {isCs
-              ? "Mikro balíčky jsou určené pro impulsní nákup přesně ve chvíli, kdy dojdou free odpovědi."
-              : "Micro packs are made for impulse purchases exactly when free replies run out."}
+              ? "Jednorázové balíčky jsou určené pro akutní situace: méně trapně, víc lidsky a bez zbytečného vysvětlování."
+              : "One-off packs are for urgent situations: less awkward, more human and without overexplaining."}
           </p>
           <div className="mt-6">
             <CreditPacks />

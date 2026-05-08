@@ -1,5 +1,10 @@
 import type { GenerateRequest } from "@/lib/generateContract";
 import type { LanguageCode, SituationCategory } from "@/lib/language/phraseTypes";
+import type {
+  IntentConflict,
+  ReplyDetectedContext,
+  SelectedSource,
+} from "@/lib/nodrama/replyIntelligenceTypes";
 
 export type SelectorMixingSource = "explicit" | "legacy" | "default";
 export type SelectorMixingConfidence = "high" | "medium" | "low";
@@ -47,6 +52,12 @@ export type NormalizedGenerationContext = {
   safetyNotes: string[];
   safetyWarnings: string[];
   signalKeywords: string[];
+  replyIntelligence: {
+    detectedContext: ReplyDetectedContext;
+    intentConflicts: IntentConflict[];
+    selectedSources: Record<"tone" | "relationship" | "channel" | "strategy", SelectedSource>;
+    routingWarnings: string[];
+  };
   situation: {
     text: string;
     language: LanguageCode;

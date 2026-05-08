@@ -86,6 +86,11 @@ if [ -f scripts/verify-selector-mixing-ux.mjs ]; then
   node scripts/verify-selector-mixing-ux.mjs
 fi
 
+if [ -f scripts/verify-reply-intelligence-v2.mjs ]; then
+  echo "==> Reply Intelligence v2"
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-reply-intelligence-v2.mjs
+fi
+
 if [ -f scripts/verify-mvp-routing-and-test-limit.mjs ]; then
   echo "==> MVP routing and local test limit"
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-mvp-routing-and-test-limit.mjs

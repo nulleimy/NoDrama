@@ -108,13 +108,13 @@ function slotsByFamily(
       ],
       boundary: [
         "V aktuálních podmínkách to nepotvrdím.",
-        "Mohu pokračovat jen po úpravě rozsahu, termínu nebo priority.",
+        "Mohu pokračovat jen po úpravě: rozsah, termín nebo rozpočet.",
         "Bez změny rozsahu by to nebylo fér očekávání.",
       ],
       softener: ["Chci, aby výsledek zůstal použitelný.", "Nechci blokovat postup, jen ho potřebuji nastavit realisticky."],
       nextStep: [
         "Navrhuji potvrdit prioritu a podle ní upravit zadání.",
-        "Pojďme si vybrat, co je teď nejdůležitější.",
+        "Pojďme potvrdit, jestli se mění rozsah, cena nebo termín.",
       ],
       closing: formal ? ["Děkuji."] : ["Pak se můžu jasně zavázat."],
       pressureFollowUp: [

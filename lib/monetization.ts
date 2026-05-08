@@ -3,41 +3,45 @@ export type CreditPack = {
   label: string;
   price: string;
   credits: number;
+  validForDays: number;
   badge?: string;
   description: string;
 };
 
 export const creditPacks: CreditPack[] = [
   {
-    id: "pack_20",
-    label: "20 odpovědí",
+    id: "pack_sos",
+    label: "SOS",
     price: "29 Kč",
-    credits: 20,
-    badge: "rychlý nákup",
-    description: "Na pár akutních situací bez čekání do zítra.",
+    credits: 4,
+    validForDays: 7,
+    badge: "urgentně",
+    description: "4 situace na akutní momenty. Platí 7 dní.",
   },
   {
-    id: "pack_100",
-    label: "100 odpovědí",
-    price: "99 Kč",
-    credits: 100,
-    badge: "nejlepší start",
-    description: "Nejlepší první balíček pro pravidelné používání.",
+    id: "pack_mini",
+    label: "Mini",
+    price: "69 Kč",
+    credits: 15,
+    validForDays: 14,
+    badge: "rychlý klid",
+    description: "15 situací pro několik citlivých zpráv. Platí 14 dní.",
   },
   {
-    id: "pack_500",
-    label: "500 odpovědí",
-    price: "299 Kč",
-    credits: 500,
-    badge: "power",
-    description: "Pro heavy users, práci, klienty a každodenní komunikaci.",
+    id: "pack_klid",
+    label: "Klid",
+    price: "149 Kč",
+    credits: 40,
+    validForDays: 30,
+    badge: "nejvíc času",
+    description: "40 situací, když potřebuješ rezervu bez předplatného. Platí 30 dní.",
   },
 ];
 
 export const upgradeCopy = {
-  headline: "Došly free odpovědi.",
+  headline: "Došly free situace.",
   subheadline:
-    "Free plán má jen 2 odpovědi denně. Odemkni další odpovědi, follow-upy a lepší varianty bez čekání.",
+    "Jedna situace znamená hotovou odpověď, varianty tónu a rychlé doladění. Odemkni další situace bez čekání.",
   primaryCta: "Odemknout Pro",
-  secondaryCta: "Koupit balíček",
+  secondaryCta: "Koupit SOS balíček",
 };

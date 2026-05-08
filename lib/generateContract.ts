@@ -97,6 +97,7 @@ const relationshipIdSchema = z.enum([
 ]);
 const channelIdSchema = z.enum([...finalChannelIds, ...legacyChannelIds]);
 const strategyIdSchema = z.enum([...finalStrategyIds, ...legacyStrategyIds]);
+const selectorSourceSchema = z.enum(["auto", "manual", "default"]);
 
 type LegacyTone = z.infer<typeof legacyToneSchema>;
 type LegacyRelationship = z.infer<typeof legacyRelationshipSchema>;
@@ -185,6 +186,14 @@ const generateRequestBaseSchema = z.object({
           strategy: strategyIdSchema.optional(),
         })
         .optional(),
+    })
+    .optional(),
+  selectorSources: z
+    .object({
+      tone: selectorSourceSchema.optional(),
+      relationship: selectorSourceSchema.optional(),
+      channel: selectorSourceSchema.optional(),
+      strategy: selectorSourceSchema.optional(),
     })
     .optional(),
 });
