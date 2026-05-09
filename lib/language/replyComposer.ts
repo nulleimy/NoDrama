@@ -31,6 +31,7 @@ type ComposerInput = {
   selectedPhrases: PhraseBankEntry[];
   fallbackUsed: boolean;
   blockedReason?: string;
+  routeOverride?: ReplyFamily;
 };
 
 const englishSignals = [
@@ -105,7 +106,8 @@ export function composeReplyVariants(
   const family = resolveReplyFamily(
     input.contentDepth.selectorMixing.selectors.strategy.id,
     strategyIntent as ReplyIntent,
-    input.category.domain
+    input.category.domain,
+    input.routeOverride
   );
   const isFormal = isFormalContext(input);
   const isFirm = isFirmContext(input);
@@ -176,8 +178,10 @@ function composeSafetyDegradedReply(
 function resolveReplyFamily(
   strategyId: string,
   intent: ReplyIntent,
-  domain: SituationCategory["domain"]
+  domain: SituationCategory["domain"],
+  routeOverride?: ReplyFamily
 ): ReplyFamily {
+  if (routeOverride) return routeOverride;
   if (strategyId === "repair") return "repair";
   if (strategyId === "soft_decline") return "decline";
   if (strategyId === "hard_boundary") return "boundary";
