@@ -91,6 +91,11 @@ if [ -f scripts/verify-reply-intelligence-v2.mjs ]; then
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-reply-intelligence-v2.mjs
 fi
 
+if [ -f scripts/verify-feedback-reasons.mjs ]; then
+  echo "==> Reply feedback reasons"
+  node scripts/verify-feedback-reasons.mjs
+fi
+
 if [ -f scripts/verify-mvp-routing-and-test-limit.mjs ]; then
   echo "==> MVP routing and local test limit"
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-mvp-routing-and-test-limit.mjs

@@ -24,7 +24,6 @@ type FeedbackRating =
   | "wrong_context"
   | "too_formal"
   | "too_harsh"
-  | "too_fake"
   | "not_sendable";
 
 type GeneratorError = {
@@ -66,10 +65,18 @@ type MemoryRecord = {
   };
   qa?: ReplyQaResult;
   outputPreview?: string;
+  feedbackByReply?: Partial<Record<ResultKey, ReplyFeedbackEvent>>;
   userFeedback?: {
     rating: FeedbackRating;
+    replyKey?: ResultKey;
     note?: string;
   };
+};
+
+type ReplyFeedbackEvent = {
+  rating: FeedbackRating;
+  createdAt: string;
+  regressionCandidate: boolean;
 };
 
 const primaryGroups: SelectorGroup[] = ["tone", "relationship", "strategy"];
@@ -127,8 +134,7 @@ const copy = {
       wrong_context: "Špatný kontext",
       too_formal: "Moc formální",
       too_harsh: "Moc ostré",
-      too_fake: "Zní trapně",
-      not_sendable: "Neposlal/a bych",
+      not_sendable: "Neposlatelné",
     },
   },
   en: {
@@ -177,7 +183,6 @@ const copy = {
       wrong_context: "Wrong context",
       too_formal: "Too formal",
       too_harsh: "Too harsh",
-      too_fake: "Sounds fake",
       not_sendable: "Not sendable",
     },
   },
@@ -201,6 +206,9 @@ export function InteractiveGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [copiedKey, setCopiedKey] = useState<ResultKey | null>(null);
   const [feedbackSaved, setFeedbackSaved] = useState<FeedbackRating | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<
+    Partial<Record<ResultKey, FeedbackRating>>
+  >({});
   const [activeMemoryId, setActiveMemoryId] = useState<string | null>(null);
   const [privateMode, setPrivateMode] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -301,6 +309,7 @@ export function InteractiveGenerator() {
       if (data.ok) {
         setResult(data.output);
         setResultMeta((data.meta || null) as ReplyIntelligenceMeta | null);
+        setSelectedFeedback({});
         const memoryId = privateMode
           ? null
           : persistMemoryRecord({
@@ -341,10 +350,13 @@ export function InteractiveGenerator() {
     }
   };
 
-  const markFeedback = (rating: FeedbackRating) => {
-    if (!activeMemoryId || privateMode) return;
+  const markFeedback = (replyKey: ResultKey, rating: FeedbackRating) => {
+    setSelectedFeedback((current) => ({ ...current, [replyKey]: rating }));
+    if (!activeMemoryId || privateMode) {
+      return;
+    }
 
-    updateMemoryFeedback(activeMemoryId, rating);
+    updateMemoryFeedback(activeMemoryId, replyKey, rating);
     setFeedbackSaved(rating);
   };
 
@@ -513,7 +525,8 @@ export function InteractiveGenerator() {
                   microActions={t.microActions}
                   onCopy={() => copyResult(key, result[key])}
                   feedbackLabels={t.feedback}
-                  onFeedback={markFeedback}
+                  selectedFeedback={selectedFeedback[key] || null}
+                  onFeedback={(rating) => markFeedback(key, rating)}
                 />
               ))}
             </div>
@@ -668,6 +681,7 @@ function ResultCard({
   microActions,
   onCopy,
   feedbackLabels,
+  selectedFeedback,
   onFeedback,
 }: {
   label: string;
@@ -677,6 +691,7 @@ function ResultCard({
   microActions: string[];
   onCopy: () => void;
   feedbackLabels: Record<FeedbackRating, string>;
+  selectedFeedback: FeedbackRating | null;
   onFeedback: (rating: FeedbackRating) => void;
 }) {
   const feedbackOrder: FeedbackRating[] = [
@@ -685,7 +700,7 @@ function ResultCard({
     "wrong_context",
     "too_formal",
     "too_harsh",
-    "too_fake",
+    "not_sendable",
   ];
 
   return (
@@ -711,8 +726,13 @@ function ResultCard({
           <button
             key={rating}
             type="button"
+            aria-pressed={selectedFeedback === rating}
             onClick={() => onFeedback(rating)}
-            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-[#B9C0E0] transition hover:border-[#35E0C3]/50 hover:text-white"
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+              selectedFeedback === rating
+                ? "border-[#35E0C3]/80 bg-[#35E0C3] text-[#07101C] shadow-lg shadow-[#35E0C3]/15"
+                : "border-white/10 bg-white/[0.04] text-[#B9C0E0] hover:border-[#35E0C3]/50 hover:text-white"
+            }`}
           >
             {feedbackLabels[rating]}
           </button>
@@ -813,10 +833,24 @@ function persistMemoryRecord({
   return record.id;
 }
 
-function updateMemoryFeedback(id: string, rating: FeedbackRating) {
+function updateMemoryFeedback(id: string, replyKey: ResultKey, rating: FeedbackRating) {
   const records = readMemoryRecords();
+  const feedback: ReplyFeedbackEvent = {
+    rating,
+    createdAt: new Date().toISOString(),
+    regressionCandidate: rating === "wrong_context",
+  };
   const next = records.map((record) =>
-    record.id === id ? { ...record, userFeedback: { rating } } : record
+    record.id === id
+      ? {
+          ...record,
+          feedbackByReply: {
+            ...(record.feedbackByReply || {}),
+            [replyKey]: feedback,
+          },
+          userFeedback: { rating, replyKey },
+        }
+      : record
   );
   window.localStorage.setItem(memoryStorageKey, JSON.stringify(next));
 }

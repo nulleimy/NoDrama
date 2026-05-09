@@ -60,8 +60,11 @@ input has real task or deadline signals.
 
 The UI stores a small local-only event record in `localStorage` under
 `nodrama.replyMemory.v1`. It includes input preview, selected context, inferred
-context, QA metadata, output preview and optional feedback chip rating. The UI
-also exposes a clear action for this local memory.
+context, QA metadata, output preview and optional feedback chip ratings per
+generated reply variant. Feedback reasons are limited to `good`, `bad`,
+`wrong_context`, `too_formal`, `too_harsh` and `not_sendable`; `wrong_context`
+is marked as a local regression candidate for later review. The UI also exposes
+a clear action for this local memory.
 
 ## Regression Verification
 
