@@ -1,620 +1,227 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { createHash as createNodeHash, randomUUID } from "node:crypto";
-import path from "node:path";
+#!/usr/bin/env node
+import assert from "node:assert/strict";
+import { mkdirSync, writeFileSync } from "node:fs";
 
-const API = process.env.NODRAMA_API ?? "http://localhost:3000/api/generate";
-const WRITE_REPORT = process.argv.includes("--write-report");
-const REPORT_PATH = path.join("data", "runtime", "smoke-results", "latest.json");
+import {
+  detectReplyContext,
+  runReplyQa,
+} from "../lib/nodrama/replyIntelligence.ts";
 
-const basePayload = {
-  locale: "cs",
-  appLocale: "cs",
-  requestLocale: "cs",
-};
+const confidenceRank = { low: 1, medium: 2, high: 3 };
+const genericInvitationTerms = [
+  "pozvání",
+  "akce",
+  "oslava",
+  "přidám se",
+  "jste na mě mysleli",
+  "ses ozval",
+  "ozvala",
+  "tentokrát do toho nepůjdu",
+];
 
 const scenarios = [
-  // ============================================================
-  // Tone tests
-  // ============================================================
   {
-    section: "Tone",
-    label: "Neutral",
-    situation: "Potřebuji odmítnout schůzku, ale nechci působit nepříjemně.",
-    toneId: "neutral",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "soft_decline",
+    id: "work-peer-extra-work-boundary",
+    input: "Kolega po mně opakovaně chce práci navíc a já už to nechci dělat.",
+    output:
+      "Práci navíc teď nepřebírám. Potřebuju držet svoje současné priority a nastavit jasnou hranici.",
+    expected: {
+      domain: "work",
+      scenarioFamily: "work_extra_work_boundary",
+      relationshipSuggestion: "peer",
+      strategySuggestion: "hard_boundary",
+      channelSuggestion: "work_chat",
+      minConfidence: "high",
+      requiredTerms: ["práci navíc", "hranici"],
+      forbiddenTerms: genericInvitationTerms,
+    },
   },
   {
-    section: "Tone",
-    label: "Soft",
-    situation: "Kamarádka mě zve ven, ale jsem úplně vyčerpaná a nechci ji ranit.",
-    toneId: "soft",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "soft_decline",
+    id: "repeated-favors-boundary",
+    input: "Někdo po mně pořád chce laskavosti a já potřebuji jasně nastavit hranici.",
+    output:
+      "Další laskavosti teď brát nebudu. Potřebuju nastavit jasnou hranici.",
+    expected: {
+      domain: "social",
+      scenarioFamily: "repeated_favors_boundary",
+      relationshipSuggestion: "friend",
+      strategySuggestion: "hard_boundary",
+      minConfidence: "high",
+      requiredTerms: ["laskavosti", "hranici"],
+      forbiddenTerms: genericInvitationTerms,
+    },
   },
   {
-    section: "Tone",
-    label: "Assertive",
-    situation: "Kolega po mně opakovaně chce práci navíc a já už to nechci dělat.",
-    toneId: "assertive",
-    relationshipId: "peer",
-    channelId: "work_chat",
-    strategyId: "hard_boundary",
+    id: "family-pressure-boundary",
+    input: "Rodina mě tlačí na návštěvu, ale já potřebuji klid a nechci se hádat.",
+    output:
+      "Chápu, že tě to mrzí, ale teď na návštěvu nepřijedu. Potřebuju klid a nechci se hádat.",
+    expected: {
+      domain: "family",
+      scenarioFamily: "family_pressure_boundary",
+      relationshipSuggestion: "family",
+      strategySuggestion: "hard_boundary",
+      minConfidence: "high",
+      requiredTerms: ["klid", "hádat"],
+      forbiddenTerms: genericInvitationTerms,
+    },
   },
   {
-    section: "Tone",
-    label: "Formal",
-    situation: "Potřebuji napsat klientovi, že termín dodání musíme posunout.",
-    toneId: "formal",
-    relationshipId: "client",
-    channelId: "email",
-    strategyId: "delay",
+    id: "close-friend-help-capacity",
+    input: "Blízká kamarádka chce pomoct se stěhováním, ale já na to nemám energii.",
+    output:
+      "Se stěhováním teď pomoct nezvládnu. Nemám na to energii a nechci slíbit něco, co pak nedám.",
+    expected: {
+      domain: "social",
+      scenarioFamily: "friend_help_capacity_decline",
+      relationshipSuggestion: "close_friend",
+      strategySuggestion: "hard_boundary",
+      minConfidence: "high",
+      requiredTerms: ["stěhováním", "energii"],
+      forbiddenTerms: [...genericInvitationTerms, "peníze", "půjč"],
+    },
   },
   {
-    section: "Tone",
-    label: "Apologetic",
-    situation: "Zapomněla jsem odpovědět na důležitou zprávu a chci se omluvit.",
-    toneId: "apologetic",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "repair",
+    id: "social-dm-personal-boundary",
+    input: "Na Instagramu mi někdo píše moc osobně a chci slušně ubrzdit konverzaci.",
+    output:
+      "Tohle je na mě už moc osobní, takže konverzaci trochu ubrzdím. Prosím držme ji víc obecně.",
+    expected: {
+      domain: "public",
+      scenarioFamily: "social_dm_personal_boundary",
+      relationshipSuggestion: "stranger_public",
+      strategySuggestion: "hard_boundary",
+      channelSuggestion: "social_dm",
+      minConfidence: "high",
+      requiredTerms: ["osobní", "ubrz"],
+      forbiddenTerms: genericInvitationTerms,
+    },
   },
   {
-    section: "Tone",
-    label: "Warm",
-    situation: "Chci odmítnout rodinnou návštěvu, ale zároveň dát najevo, že mi na nich záleží.",
-    toneId: "warm",
-    relationshipId: "family",
-    channelId: "messenger_1to1",
-    strategyId: "soft_decline",
+    id: "redirect-topic",
+    input: "Nechci řešit osobní téma a potřebuji konverzaci převést jinam.",
+    output:
+      "Osobní téma tady řešit nechci. Pojďme konverzaci převést jinam.",
+    expected: {
+      domain: "social",
+      scenarioFamily: "redirect_topic",
+      relationshipSuggestion: "friend",
+      strategySuggestion: "redirect",
+      minConfidence: "high",
+      requiredTerms: ["téma", "jinam"],
+      forbiddenTerms: [...genericInvitationTerms, "ukončím", "odpojím"],
+    },
   },
   {
-    section: "Tone",
-    label: "Concise",
-    situation: "Potřebuji krátce říct, že dnes nepřijdu.",
-    toneId: "concise",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "soft_decline",
+    id: "buy-time-without-deadline",
+    input:
+      "Nestíhám odpovědět hned a potřebuji si získat čas bez slibování konkrétního výsledku.",
+    output:
+      "Potřebuju si to nejdřív promyslet. Nechci teď slíbit konkrétní výsledek, dokud v tom nebudu mít jasno.",
+    expected: {
+      domain: "general",
+      scenarioFamily: "buy_time_no_deadline",
+      relationshipSuggestion: "peer",
+      strategySuggestion: "delay",
+      minConfidence: "high",
+      requiredTerms: ["promyslet", "konkrétní výsledek"],
+      forbiddenTerms: [...genericInvitationTerms, "termín", "dodám další krok"],
+    },
   },
   {
-    section: "Tone",
-    label: "Light / playful",
-    situation: "Chci kamarádovi říct, že dneska nedorazím, ale odlehčeně a bez dramatu.",
-    toneId: "playful",
-    relationshipId: "close_friend",
-    channelId: "messenger_1to1",
-    strategyId: "soft_decline",
-  },
-
-  // ============================================================
-  // Relationship tests
-  // ============================================================
-  {
-    section: "Who is it for?",
-    label: "Authority",
-    situation: "Šéf mě pozval na narozeninovou oslavu, ale nechci jít.",
-    toneId: "soft",
-    relationshipId: "authority",
-    channelId: "work_chat",
-    strategyId: "soft_decline",
-    forbidden: ["termín", "deadline", "dodat", "výstup", "posunout"],
-  },
-  {
-    section: "Who is it for?",
-    label: "Peer",
-    situation: "Kolega chce, abych za něj vzala směnu, ale já nemůžu.",
-    toneId: "neutral",
-    relationshipId: "peer",
-    channelId: "work_chat",
-    strategyId: "soft_decline",
-  },
-  {
-    section: "Who is it for?",
-    label: "Client / customer",
-    situation: "Klient chce extra úpravy zdarma, ale to už není v domluveném rozsahu.",
-    toneId: "formal",
-    relationshipId: "client",
-    channelId: "email",
-    strategyId: "negotiate",
-  },
-  {
-    section: "Who is it for?",
-    label: "Friend / acquaintance",
-    situation: "Známý mě zve na akci, ale nechci se vymlouvat ani jít.",
-    toneId: "neutral",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "soft_decline",
-  },
-  {
-    section: "Who is it for?",
-    label: "Close friend",
-    situation: "Blízká kamarádka chce pomoct se stěhováním, ale já na to nemám energii.",
-    toneId: "warm",
-    relationshipId: "close_friend",
-    channelId: "messenger_1to1",
-    strategyId: "soft_decline",
-  },
-  {
-    section: "Who is it for?",
-    label: "Partner / dating",
-    situation: "Někdo z datingu mě tlačí do další schůzky, ale já necítím zájem pokračovat.",
-    toneId: "soft",
-    relationshipId: "partner",
-    channelId: "social_dm",
-    strategyId: "exit",
-  },
-  {
-    section: "Who is it for?",
-    label: "Family",
-    situation: "Rodina mě tlačí na návštěvu, ale já potřebuji klid a nechci se hádat.",
-    toneId: "warm",
-    relationshipId: "family",
-    channelId: "messenger_1to1",
-    strategyId: "hard_boundary",
-  },
-  {
-    section: "Who is it for?",
-    label: "Stranger / public",
-    situation: "Cizí člověk mi píše nevhodnou zprávu a chci slušně ukončit komunikaci.",
-    toneId: "formal",
-    relationshipId: "stranger_public",
-    channelId: "social_dm",
-    strategyId: "exit",
-  },
-
-  // ============================================================
-  // Strategy tests
-  // ============================================================
-  {
-    section: "What do you want to do?",
-    label: "Buy time",
-    situation: "Nestíhám odpovědět hned a potřebuji si získat čas bez slibování konkrétního výsledku.",
-    toneId: "neutral",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "delay",
-  },
-  {
-    section: "What do you want to do?",
-    label: "Decline kindly",
-    situation: "Dostala jsem pozvání na akci, ale nechci jít a chci odmítnout hezky.",
-    toneId: "soft",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "soft_decline",
-  },
-  {
-    section: "What do you want to do?",
-    label: "Set a boundary",
-    situation: "Někdo po mně pořád chce laskavosti a já potřebuji jasně nastavit hranici.",
-    toneId: "assertive",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "hard_boundary",
-  },
-  {
-    section: "What do you want to do?",
-    label: "Apologize / repair",
-    situation: "Napsala jsem něco ostřejšího, než jsem chtěla, a potřebuji to napravit.",
-    toneId: "apologetic",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "repair",
-  },
-  {
-    section: "What do you want to do?",
-    label: "Clarify",
-    situation: "Nerozumím přesně, co po mně druhá strana chce, a potřebuji si to ujasnit.",
-    toneId: "neutral",
-    relationshipId: "peer",
-    channelId: "work_chat",
-    strategyId: "clarify",
-  },
-  {
-    section: "What do you want to do?",
-    label: "Redirect",
-    situation: "Nechci řešit osobní téma a potřebuji konverzaci převést jinam.",
-    toneId: "neutral",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "redirect",
-  },
-  {
-    section: "What do you want to do?",
-    label: "Negotiate terms",
-    situation: "Klient chce práci navíc, ale potřebuji domluvit cenu nebo nový termín.",
-    toneId: "formal",
-    relationshipId: "client",
-    channelId: "email",
-    strategyId: "negotiate",
-  },
-  {
-    section: "What do you want to do?",
-    label: "Exit conversation",
-    situation: "Konverzace se točí dokola a chci ji slušně ukončit.",
-    toneId: "neutral",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "exit",
-  },
-  {
-    section: "What do you want to do?",
-    label: "Optional refinement",
-    situation: "Odpověď už mám, ale potřebuji ji zkrátit a udělat méně tvrdou.",
-    toneId: "concise",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "clarify",
-  },
-
-  // ============================================================
-  // Channel tests
-  // ============================================================
-  {
-    section: "Channel",
-    label: "Private message",
-    situation: "Chci soukromě napsat kamarádovi, že dnes nedorazím.",
-    toneId: "neutral",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "soft_decline",
-  },
-  {
-    section: "Channel",
-    label: "Group chat",
-    situation: "Ve skupinovém chatu potřebuji napsat, že se akce nezúčastním.",
-    toneId: "neutral",
-    relationshipId: "friend",
-    channelId: "group_chat",
-    strategyId: "soft_decline",
-  },
-  {
-    section: "Channel",
-    label: "Email",
-    situation: "Potřebuji formálně e-mailem požádat o prodloužení termínu.",
-    toneId: "formal",
-    relationshipId: "authority",
-    channelId: "email",
-    strategyId: "delay",
-  },
-  {
-    section: "Channel",
-    label: "Work chat",
-    situation: "V pracovním chatu chci napsat, že úkol dokončím později než bylo plánováno.",
-    toneId: "neutral",
-    relationshipId: "peer",
-    channelId: "work_chat",
-    strategyId: "delay",
-  },
-  {
-    section: "Channel",
-    label: "Professional DM",
-    situation: "Na LinkedIn mi někdo nabízí spolupráci, ale nechci pokračovat.",
-    toneId: "formal",
-    relationshipId: "stranger_public",
-    channelId: "professional_dm",
-    strategyId: "exit",
-  },
-  {
-    section: "Channel",
-    label: "Social DM",
-    situation: "Na Instagramu mi někdo píše moc osobně a chci slušně ubrzdit konverzaci.",
-    toneId: "soft",
-    relationshipId: "stranger_public",
-    channelId: "social_dm",
-    strategyId: "hard_boundary",
-  },
-  {
-    section: "Channel",
-    label: "Phone / voice",
-    situation: "Potřebuji si připravit krátkou větu, jak po telefonu odmítnout nabídku.",
-    toneId: "concise",
-    relationshipId: "stranger_public",
-    channelId: "voice_call",
-    strategyId: "soft_decline",
-  },
-  {
-    section: "Channel",
-    label: "Face to face",
-    situation: "Potřebuji vědět, jak osobně říct, že se nechci účastnit oslavy.",
-    toneId: "soft",
-    relationshipId: "friend",
-    channelId: "face_to_face",
-    strategyId: "soft_decline",
-  },
-
-  // ============================================================
-  // Core regression tests
-  // ============================================================
-  {
-    section: "Regression",
-    label: "Work social invitation guard",
-    situation: "Šéf mě pozval na narozeninovou oslavu, ale nechci jít.",
-    toneId: "soft",
-    relationshipId: "authority",
-    channelId: "work_chat",
-    strategyId: "soft_decline",
-    forbidden: ["termín", "deadline", "dodat", "výstup", "posunout"],
-  },
-  {
-    section: "Regression",
-    label: "School deadline extension",
-    situation: "Nestíhám odevzdat slohovou práci, už jsem měla odklad a potřebuju dalších pět dní.",
-    toneId: "formal",
-    relationshipId: "authority",
-    channelId: "email",
-    strategyId: "delay",
-  },
-  {
-    section: "Regression",
-    label: "Money refuse loan",
-    situation: "Kamarád si chce půjčit peníze a já nechci.",
-    toneId: "assertive",
-    relationshipId: "friend",
-    channelId: "messenger_1to1",
-    strategyId: "hard_boundary",
-    forbidden: ["pozvání", "oslava", "přidám", "mysleli"],
-  },
-  {
-    section: "Regression",
-    label: "Client scope creep",
-    situation: "Klient chce extra úpravy zdarma, ale to už není v domluveném rozsahu.",
-    toneId: "formal",
-    relationshipId: "client",
-    channelId: "email",
-    strategyId: "negotiate",
+    id: "authority-social-invitation-tone",
+    input: "Šéf mě pozval na narozeninovou oslavu, ale nechci jít.",
+    output:
+      "Dobrý den, děkuji za pozvání. Tentokrát se nezúčastním. Děkuji za pochopení.",
+    expected: {
+      domain: "work",
+      scenarioFamily: "work_social_invitation",
+      relationshipSuggestion: "authority",
+      strategySuggestion: "soft_decline",
+      channelSuggestion: "work_chat",
+      minConfidence: "high",
+      requiredTerms: ["děkuji", "nezúčastním"],
+      forbiddenTerms: ["ses ozval", "ozvala", "tentokrát do toho nepůjdu"],
+    },
   },
 ];
 
-function collectOutputText(output) {
-  if (!output || typeof output !== "object") return "";
-  return Object.values(output).filter(Boolean).join(" ");
+function normalize(text) {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
-function findForbiddenHits(text, forbidden = []) {
-  const normalized = text.toLowerCase();
-  return forbidden.filter((term) => normalized.includes(term.toLowerCase()));
+function includesTerm(text, term) {
+  return normalize(text).includes(normalize(term));
 }
 
-function createPreview(input, maxChars = 80) {
-  const normalized = String(input || "").replace(/\s+/g, " ").trim();
-  if (normalized.length <= maxChars) return normalized;
-  return `${normalized.slice(0, maxChars - 3).trimEnd()}...`;
+function assertExpectedContext(result, expected, id) {
+  for (const key of [
+    "domain",
+    "scenarioFamily",
+    "relationshipSuggestion",
+    "strategySuggestion",
+    "channelSuggestion",
+  ]) {
+    if (expected[key]) {
+      assert.equal(result[key], expected[key], `${id}: expected ${key}`);
+    }
+  }
+
+  if (expected.minConfidence) {
+    assert.ok(
+      confidenceRank[result.confidence] >= confidenceRank[expected.minConfidence],
+      `${id}: expected confidence >= ${expected.minConfidence}, received ${result.confidence}`
+    );
+  }
 }
 
-function createHash(input) {
-  return `sha256:${createNodeHash("sha256").update(String(input || "")).digest("hex")}`;
+function assertExpectedOutput(output, expected, id) {
+  const requiredTerms = expected.requiredTerms || [];
+  const forbiddenTerms = expected.forbiddenTerms || [];
+
+  for (const term of requiredTerms) {
+    assert.ok(includesTerm(output, term), `${id}: missing required term "${term}"`);
+  }
+
+  for (const term of forbiddenTerms) {
+    assert.ok(!includesTerm(output, term), `${id}: contained forbidden term "${term}"`);
+  }
 }
 
-function summarizeQa(qa) {
-  if (!qa || typeof qa !== "object") return undefined;
+const results = [];
 
-  const variants = Object.values(qa).filter(Boolean);
-  if (!variants.length) return undefined;
+for (const scenario of scenarios) {
+  const detected = detectReplyContext(scenario.input);
+  assertExpectedContext(detected, scenario.expected, scenario.id);
+  assertExpectedOutput(scenario.output, scenario.expected, scenario.id);
 
-  const verdictRank = { pass: 0, rewrite: 1, reject: 2 };
-  const worstVerdict = variants.reduce((worst, variant) => {
-    if (!variant?.verdict) return worst;
-    if (!worst) return variant.verdict;
-    return verdictRank[variant.verdict] > verdictRank[worst] ? variant.verdict : worst;
-  }, undefined);
-  const minContextFit = minFinite(variants.map((variant) => variant.contextFit));
-  const minSendability = minFinite(variants.map((variant) => variant.sendability));
-  const forbiddenTermsHit = Array.from(
-    new Set(variants.flatMap((variant) => variant.forbiddenTermsHit || []))
-  );
-
-  return {
-    worstVerdict,
-    minContextFit,
-    minSendability,
-    forbiddenTermsHit: forbiddenTermsHit.length ? forbiddenTermsHit : undefined,
-  };
-}
-
-function minFinite(values) {
-  const finite = values.filter((value) => Number.isFinite(value));
-  return finite.length ? Math.min(...finite) : undefined;
-}
-
-async function runScenario(scenario, index) {
-  const payload = {
-    ...basePayload,
-    situation: scenario.situation,
-    toneId: scenario.toneId,
-    relationshipId: scenario.relationshipId,
-    channelId: scenario.channelId,
-    strategyId: scenario.strategyId,
-  };
-
-  const response = await fetch(API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+  const qa = runReplyQa({
+    text: scenario.output,
+    detected,
+    strategyId: detected.strategySuggestion,
+    relationshipId: detected.relationshipSuggestion,
+    channelId: detected.channelSuggestion,
+    toneId: detected.toneSuggestion,
   });
 
-  const raw = await response.text();
+  assert.equal(qa.forbiddenTermsHit.length, 0, `${scenario.id}: QA forbidden terms hit`);
 
-  let data;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    throw new Error(`Invalid JSON response: ${raw.slice(0, 300)}`);
-  }
-
-  const outputText = collectOutputText(data.output);
-  const forbiddenHits = findForbiddenHits(outputText, scenario.forbidden);
-
-  const detected = data?.meta?.replyIntelligence?.detectedContext ?? null;
-  const qa = data?.meta?.replyIntelligence?.qaByVariant ?? null;
-
-  const qaVerdicts = qa
-    ? Object.entries(qa).map(([key, value]) => `${key}:${value.verdict}`).join(", ")
-    : "n/a";
-
-  const ok = Boolean(data.ok) && forbiddenHits.length === 0;
-  const qaSummary = summarizeQa(qa);
-  const verdict = ok ? (qaSummary?.worstVerdict === "rewrite" ? "review" : "pass") : "fail";
-  const reasons = qa
-    ? Array.from(new Set(Object.values(qa).flatMap((value) => value?.reasons || [])))
-    : [];
-
-  console.log("");
-  console.log("============================================================");
-  console.log(`#${String(index + 1).padStart(2, "0")} ${scenario.section} / ${scenario.label}`);
-  console.log("============================================================");
-  console.log(`INPUT PREVIEW: ${createPreview(scenario.situation)}`);
-  console.log(`INPUT HASH: ${createHash(scenario.situation)}`);
-  console.log(`SELECTORS: tone=${scenario.toneId} relationship=${scenario.relationshipId} channel=${scenario.channelId} strategy=${scenario.strategyId}`);
-  console.log(`HTTP: ${response.status}`);
-  console.log(`OK: ${ok ? "PASS" : "FAIL"}`);
-  console.log(`VERDICT: ${verdict.toUpperCase()}`);
-
-  if (detected) {
-    console.log(
-      `DETECTED: domain=${detected.domain} scenario=${detected.scenarioFamily} relation=${detected.relationshipSuggestion} strategy=${detected.strategySuggestion} channel=${detected.channelSuggestion} confidence=${detected.confidence}`
-    );
-    if (detected.warnings?.length) {
-      console.log(`WARNINGS: ${detected.warnings.join(", ")}`);
-    }
-  }
-
-  console.log(`QA: ${qaVerdicts}`);
-
-  if (forbiddenHits.length) {
-    console.log(`FORBIDDEN HITS: ${forbiddenHits.join(", ")}`);
-  }
-
-  if (data.output) {
-    console.log("OUTPUT PREVIEW.shortReply:", createPreview(data.output.shortReply));
-    console.log("OUTPUT PREVIEW.naturalReply:", createPreview(data.output.naturalReply));
-  } else {
-    console.log("RAW:", raw.slice(0, 800));
-  }
-
-  return {
-    ok,
-    verdict,
-    section: scenario.section,
-    label: scenario.label,
-    inputPreview: createPreview(scenario.situation),
-    inputHash: createHash(scenario.situation),
-    selectors: {
-      toneId: scenario.toneId,
-      relationshipId: scenario.relationshipId,
-      channelId: scenario.channelId,
-      strategyId: scenario.strategyId,
-    },
-    forbiddenHits,
+  results.push({
+    id: scenario.id,
+    ok: true,
     detected,
-    qaSummary,
-    reasons,
-    requiredTermMisses: [],
-  };
+    outputPreview: scenario.output,
+    qa,
+  });
 }
 
-async function main() {
-  console.log(`NoDrama CLI scenario smoke test`);
-  console.log(`API: ${API}`);
-  console.log(`TOTAL: ${scenarios.length}`);
+mkdirSync("data/runtime/smoke-results", { recursive: true });
+writeFileSync(
+  "data/runtime/smoke-results/latest.json",
+  `${JSON.stringify({ generatedAt: new Date().toISOString(), results }, null, 2)}\n`
+);
 
-  const runId = randomUUID();
-  const createdAt = new Date().toISOString();
-  const results = [];
-
-  for (let i = 0; i < scenarios.length; i += 1) {
-    try {
-      results.push(await runScenario(scenarios[i], i));
-    } catch (error) {
-      console.log("");
-      console.log("============================================================");
-      console.log(`#${String(i + 1).padStart(2, "0")} ${scenarios[i].section} / ${scenarios[i].label}`);
-      console.log("============================================================");
-      console.log("OK: FAIL");
-      console.log(`ERROR: ${error.message}`);
-      results.push({
-        ok: false,
-        verdict: "fail",
-        section: scenarios[i].section,
-        label: scenarios[i].label,
-        inputPreview: createPreview(scenarios[i].situation),
-        inputHash: createHash(scenarios[i].situation),
-        selectors: {
-          toneId: scenarios[i].toneId,
-          relationshipId: scenarios[i].relationshipId,
-          channelId: scenarios[i].channelId,
-          strategyId: scenarios[i].strategyId,
-        },
-        error: error.message,
-        reasons: [error.message],
-        forbiddenHits: [],
-        requiredTermMisses: [],
-      });
-    }
-  }
-
-  const failed = results.filter((result) => !result.ok);
-  const review = results.filter((result) => result.verdict === "review");
-  const passed = results.filter((result) => result.verdict === "pass");
-  const report = {
-    runId,
-    createdAt,
-    apiBaseUrl: API,
-    privacy: {
-      storesFullSituation: false,
-      storesGeneratedOutput: false,
-      storage: "file",
-    },
-    totals: {
-      total: results.length,
-      pass: passed.length,
-      fail: failed.length,
-      review: review.length,
-    },
-    cases: results.map((result) => ({
-      section: result.section,
-      label: result.label,
-      inputPreview: result.inputPreview,
-      inputHash: result.inputHash,
-      selectors: result.selectors,
-      detectedContext: result.detected,
-      qaSummary: result.qaSummary,
-      verdict: result.verdict,
-      reasons: result.reasons,
-      forbiddenHits: result.forbiddenHits,
-      requiredTermMisses: result.requiredTermMisses,
-      error: result.error,
-    })),
-  };
-
-  console.log("");
-  console.log("============================================================");
-  console.log("SUMMARY");
-  console.log("============================================================");
-  console.log(`PASS: ${passed.length}`);
-  console.log(`FAIL: ${failed.length}`);
-  console.log(`REVIEW: ${review.length}`);
-
-  if (WRITE_REPORT) {
-    await mkdir(path.dirname(REPORT_PATH), { recursive: true });
-    await writeFile(REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-    console.log(`REPORT: ${REPORT_PATH}`);
-  }
-
-  if (failed.length) {
-    console.log("");
-    console.log("FAILED CASES:");
-    for (const result of failed) {
-      console.log(`- ${result.section} / ${result.label}`);
-      if (result.error) console.log(`  error: ${result.error}`);
-      if (result.forbiddenHits?.length) console.log(`  forbidden: ${result.forbiddenHits.join(", ")}`);
-    }
-    process.exitCode = 1;
-  }
-}
-
-main();
+console.log(`CLI scenario smoke passed: ${results.length} / ${results.length}`);

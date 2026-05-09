@@ -44,6 +44,52 @@ assert.equal(resolveScenarioRoute("soft_decline", issueMoneyRefusal), "boundary"
 
 const familyBoundary = detectReplyContext("Rodina na mě tlačí přes výčitky");
 assert.equal(familyBoundary.scenarioFamily, "family_pressure_boundary");
+assert.equal(familyBoundary.strategySuggestion, "hard_boundary");
+
+const workExtraBoundary = detectReplyContext(
+  "Kolega po mně opakovaně chce práci navíc a já už to nechci dělat."
+);
+assert.equal(workExtraBoundary.domain, "work");
+assert.equal(workExtraBoundary.scenarioFamily, "work_extra_work_boundary");
+assert.equal(workExtraBoundary.relationshipSuggestion, "peer");
+assert.equal(workExtraBoundary.strategySuggestion, "hard_boundary");
+assert.equal(workExtraBoundary.channelSuggestion, "work_chat");
+assert.equal(resolveScenarioRoute("soft_decline", workExtraBoundary), "boundary");
+
+const repeatedFavors = detectReplyContext(
+  "Někdo po mně pořád chce laskavosti a já potřebuji jasně nastavit hranici."
+);
+assert.equal(repeatedFavors.scenarioFamily, "repeated_favors_boundary");
+assert.equal(repeatedFavors.strategySuggestion, "hard_boundary");
+
+const friendHelp = detectReplyContext(
+  "Blízká kamarádka chce pomoct se stěhováním, ale já na to nemám energii."
+);
+assert.equal(friendHelp.domain, "social");
+assert.equal(friendHelp.scenarioFamily, "friend_help_capacity_decline");
+assert.equal(friendHelp.relationshipSuggestion, "close_friend");
+assert.equal(friendHelp.strategySuggestion, "hard_boundary");
+
+const socialDm = detectReplyContext(
+  "Na Instagramu mi někdo píše moc osobně a chci slušně ubrzdit konverzaci."
+);
+assert.equal(socialDm.domain, "public");
+assert.equal(socialDm.scenarioFamily, "social_dm_personal_boundary");
+assert.equal(socialDm.relationshipSuggestion, "stranger_public");
+assert.equal(socialDm.channelSuggestion, "social_dm");
+
+const redirectTopic = detectReplyContext(
+  "Nechci řešit osobní téma a potřebuji konverzaci převést jinam."
+);
+assert.equal(redirectTopic.scenarioFamily, "redirect_topic");
+assert.equal(redirectTopic.strategySuggestion, "redirect");
+assert.equal(resolveScenarioRoute("exit", redirectTopic), "redirect");
+
+const buyTime = detectReplyContext(
+  "Nestíhám odpovědět hned a potřebuji si získat čas bez slibování konkrétního výsledku."
+);
+assert.equal(buyTime.scenarioFamily, "buy_time_no_deadline");
+assert.equal(buyTime.strategySuggestion, "delay");
 
 const clientScope = detectReplyContext("Client asks for extra scope outside budget and timeline");
 assert.equal(clientScope.scenarioFamily, "client_scope_negotiation");
@@ -60,7 +106,7 @@ assert.ok(guardQa.forbiddenTermsHit.length > 0);
 assert.ok(["rewrite", "reject"].includes(guardQa.verdict));
 
 const moneyVocabularyQa = runReplyQa({
-  text: "Díky za pozvání. Tentokrát se nepřidám, ale vážím si toho, že jste na mě mysleli.",
+  text: "Díky za pozvání. Díky, že ses ozval. Tentokrát se nepřidám, ale vážím si toho, že jste na mě mysleli.",
   detected: issueMoneyRefusal,
   strategyId: "hard_boundary",
   relationshipId: "friend",
@@ -70,7 +116,20 @@ const moneyVocabularyQa = runReplyQa({
 assert.ok(moneyVocabularyQa.contextFit < 0.65);
 assert.ok(["rewrite", "reject"].includes(moneyVocabularyQa.verdict));
 assert.ok(moneyVocabularyQa.forbiddenTermsHit.includes("pozvání"));
+assert.ok(moneyVocabularyQa.forbiddenTermsHit.includes("ses ozval"));
 assert.ok(moneyVocabularyQa.reasons.includes("scenario_vocabulary_conflict"));
+
+const repeatedFavorQa = runReplyQa({
+  text: "Díky za pozvání. Tentokrát do toho nepůjdu.",
+  detected: repeatedFavors,
+  strategyId: "hard_boundary",
+  relationshipId: "friend",
+  channelId: "messenger_1to1",
+  toneId: "assertive",
+});
+assert.ok(repeatedFavorQa.forbiddenTermsHit.includes("pozvání"));
+assert.ok(repeatedFavorQa.forbiddenTermsHit.includes("tentokrát do toho nepůjdu"));
+assert.ok(["rewrite", "reject"].includes(repeatedFavorQa.verdict));
 
 const moneySlots = getCzechRealizerSlots({
   family: "money_refuse_loan",

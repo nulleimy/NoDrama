@@ -120,7 +120,18 @@ const familySignals = ["rodina", "máma", "mama", "táta", "tata", "family", "pa
 const moneySignals = ["pujc", "půjč", "loan", "borrow", "lend", "money", "penize", "peníze"];
 const clientSignals = ["client", "klient", "scope", "rozsah", "budget", "rozpocet", "rozpočet"];
 const repairSignals = ["omlouv", "promin", "sorry", "apolog", "my fault", "moje chyba"];
-const pressureSignals = ["tlak", "pressure", "keeps pushing", "nuti", "nutí", "vycita", "vyčítá", "guilt"];
+const pressureSignals = [
+  "tlak",
+  "tlaci",
+  "tlačí",
+  "pressure",
+  "keeps pushing",
+  "nuti",
+  "nutí",
+  "vycita",
+  "vyčítá",
+  "guilt",
+];
 const peerSignals = ["kolega", "kolegyn", "coworker", "peer", "colleague"];
 const extraWorkSignals = [
   "prace navic",
@@ -176,6 +187,8 @@ const buyTimeSignals = [
   "konkrétního výsledku",
   "buy time",
 ];
+const boundarySignals = ["hranic", "boundary", "nechci", "nemuzu", "nemůžu"];
+const noPromiseSignals = ["bez slibovani", "bez slibování", "nechci slibit", "nechci slíbit"];
 
 const fakeCueSignals = [
   "fake excuse",
@@ -300,6 +313,8 @@ export function detectReplyContext(text: string): ContextDetectionResult {
   const hasPersonalBoundary = hasAny(normalized, personalBoundarySignals);
   const hasRedirectTopic = hasAny(normalized, redirectTopicSignals);
   const hasBuyTime = hasAny(normalized, buyTimeSignals);
+  const hasBoundary = hasAny(normalized, boundarySignals);
+  const hasNoPromise = hasAny(normalized, noPromiseSignals);
 
   if (hasAuthority) reasons.push("authority_signal");
   if (hasPeer) reasons.push("peer_signal");
@@ -314,10 +329,13 @@ export function detectReplyContext(text: string): ContextDetectionResult {
   if (hasExtraWork) reasons.push("extra_work_signal");
   if (hasRepeatedFavor) reasons.push("repeated_favor_signal");
   if (hasHelpCapacity) reasons.push("help_capacity_signal");
+  if (hasCloseFriend) reasons.push("close_friend_signal");
   if (hasSocialDm) reasons.push("social_dm_signal");
   if (hasPersonalBoundary) reasons.push("personal_boundary_signal");
   if (hasRedirectTopic) reasons.push("redirect_topic_signal");
   if (hasBuyTime) reasons.push("buy_time_signal");
+  if (hasBoundary) reasons.push("boundary_signal");
+  if (hasNoPromise) reasons.push("no_promise_signal");
 
   let domain: DetectorDomain = "general";
   let scenarioFamily: ScenarioFamily = "general";
