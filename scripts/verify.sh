@@ -111,6 +111,11 @@ if [ -f scripts/verify-feedback-reasons-v2.mjs ]; then
   node scripts/verify-feedback-reasons-v2.mjs
 fi
 
+if [ -f scripts/verify-safe-logging-history.mjs ]; then
+  echo "==> Safe logging and local history"
+  node scripts/verify-safe-logging-history.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs

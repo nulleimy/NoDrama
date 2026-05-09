@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLang } from "@/components/i18n/LanguageProvider";
 import { PaywallBox } from "@/components/PaywallBox";
 import type { GenerateErrorResponse, GenerateResponse } from "@/lib/generateContract";
+import type { GenerationEvent, GenerationFeedbackReason } from "@/lib/nodrama/generationEvents";
 import {
   detectIntentConflict,
   detectReplyContext,
@@ -11,6 +12,7 @@ import {
   type ReplyQaResult,
   type SelectorSource,
 } from "@/lib/nodrama/replyIntelligence";
+import { createGenerationEvent } from "@/lib/nodrama/safeLogging";
 import { publicGeneratorTaxonomyControls } from "@/lib/nodrama/uiTaxonomyControls.mjs";
 
 type SelectorGroup = "tone" | "relationship" | "channel" | "strategy";
@@ -30,39 +32,28 @@ type FeedbackRating =
   | "not_sendable";
 
 type FeedbackEvent = {
-  rating: FeedbackRating;
+  reason: FeedbackRating;
   variantKey: ResultKey;
   createdAt: string;
   regressionCandidate?: boolean;
 };
 
-type GenerationMemoryRecord = {
-  id: string;
-  createdAt: string;
-  language: "cs" | "en";
-  userInputPreview: string;
-  selectedContext: {
-    toneId: string;
-    relationshipId: string;
-    channelId: string;
-    strategyId: string;
-    source?: SelectorSource;
-  };
-  inferredContext: {
-    domain: string;
-    scenarioFamily: string;
-    confidence: "low" | "medium" | "high";
-    reasons: string[];
-    warnings: string[];
-  };
-  qa?: ReplyQaResult;
-  outputPreview?: string;
+type GenerationMemoryRecord = GenerationEvent & {
+  selectorSource?: SelectorSource;
   userFeedback?: {
-    rating: FeedbackRating;
+    reason: FeedbackRating;
     variantKey?: ResultKey;
     note?: string;
+    regressionCandidate?: boolean;
   };
   feedbackEvents?: FeedbackEvent[];
+};
+
+type LocalHistoryStats = {
+  memoryLane: number;
+  technicalEvents: number;
+  feedbackEvents: number;
+  regressionCandidates: number;
 };
 
 const primaryGroups: SelectorGroup[] = ["tone", "relationship", "strategy"];
@@ -97,16 +88,24 @@ const copy = {
     errorTitle: "Tuhle odpověď se nepovedlo složit.",
     errorHint: "Zkus upravit zadání nebo to za chvíli poslat znovu.",
     resultLabels: {
-      shortReply: "Krátká",
-      naturalReply: "Přirozená",
-      strongReply: "Ráznější",
-      followUpReply: "Když budou tlačit dál",
+      shortReply: "Kratší verze",
+      naturalReply: "Nejlepší odpověď",
+      strongReply: "Přímější verze",
+      followUpReply: "Follow-up odpověď",
     },
     suggested: "Navrženo podle textu",
     manual: "Ručně upraveno",
     lowConfidence: "Nízká jistota — zkontroluj výběr",
     conflictTitle: "Možný konflikt záměru",
     feedbackSaved: "Zpětná vazba uložena do Memory Lane",
+    historyTitle: "Memory Lane",
+    historyPrivacy:
+      "Historie je uložená jen v tomto prohlížeči. Technické záznamy neukládají celé zadání ani vygenerované odpovědi.",
+    exportHistory: "Exportovat JSON",
+    clearHistory: "Vymazat historii",
+    clearFeedback: "Vymazat feedback",
+    clearRegression: "Vymazat regression kandidáty",
+    historyStats: "Záznamy",
     feedbackLabels: {
       good: "Použitelné",
       bad: "Mimo",
@@ -141,9 +140,9 @@ const copy = {
     errorTitle: "This reply could not be written.",
     errorHint: "Try adjusting the situation or send it again in a moment.",
     resultLabels: {
-      shortReply: "Short",
-      naturalReply: "Natural",
-      strongReply: "Strong",
+      shortReply: "Shorter version",
+      naturalReply: "Best reply",
+      strongReply: "More direct",
       followUpReply: "Follow-up",
     },
     suggested: "Suggested from your text",
@@ -151,6 +150,14 @@ const copy = {
     lowConfidence: "Low confidence — review selectors",
     conflictTitle: "Possible intent conflict",
     feedbackSaved: "Feedback saved to Memory Lane",
+    historyTitle: "Memory Lane",
+    historyPrivacy:
+      "History is stored only in this browser. Technical records do not store the full situation or generated replies.",
+    exportHistory: "Export JSON",
+    clearHistory: "Clear history",
+    clearFeedback: "Clear feedback",
+    clearRegression: "Clear regression candidates",
+    historyStats: "Records",
     feedbackLabels: {
       good: "Usable",
       bad: "Off",
@@ -162,7 +169,7 @@ const copy = {
   },
 };
 
-const resultOrder: ResultKey[] = ["shortReply", "naturalReply", "strongReply", "followUpReply"];
+const resultOrder: ResultKey[] = ["naturalReply", "shortReply", "strongReply", "followUpReply"];
 
 export function InteractiveGenerator() {
   const { lang } = useLang();
@@ -191,6 +198,7 @@ export function InteractiveGenerator() {
   const [memoryId, setMemoryId] = useState<string | null>(null);
   const [feedbackSaved, setFeedbackSaved] = useState(false);
   const [selectedFeedback, setSelectedFeedback] = useState<Partial<Record<ResultKey, FeedbackRating>>>({});
+  const [historyStats, setHistoryStats] = useState<LocalHistoryStats>(() => getLocalHistoryStats());
 
   useEffect(() => {
     if (input.trim().length < 6) {
@@ -268,39 +276,28 @@ export function InteractiveGenerator() {
         setResult(data.output);
         setSelectedFeedback({});
         setFeedbackSaved(false);
-        const qa = (data.meta as { replyIntelligence?: { qaByVariant?: Record<string, ReplyQaResult> } } | undefined)
-          ?.replyIntelligence?.qaByVariant?.naturalReply;
+        const replyIntelligence = (
+          data.meta as { replyIntelligence?: { qaByVariant?: Record<string, ReplyQaResult> } } | undefined
+        )?.replyIntelligence;
+        const qaByVariant = replyIntelligence?.qaByVariant;
+        const qa = qaByVariant?.naturalReply;
         setQaSummary(qa || null);
         const saved = saveMemoryRecord({
-          createdAt: new Date().toISOString(),
-          language: lang,
-          userInputPreview: input.slice(0, 240),
-          selectedContext: {
+          source: "ui",
+          locale: lang,
+          situation: input,
+          selectors: {
             toneId: selected.tone,
             relationshipId: selected.relationship,
             channelId: selected.channel,
             strategyId: selected.strategy,
-            source: selectionSource.strategy,
           },
-          inferredContext: detectedContext
-            ? {
-                domain: detectedContext.domain,
-                scenarioFamily: detectedContext.scenarioFamily,
-                confidence: detectedContext.confidence,
-                reasons: detectedContext.reasons,
-                warnings: detectedContext.warnings,
-              }
-            : {
-                domain: "general",
-                scenarioFamily: "general",
-                confidence: "low",
-                reasons: [],
-                warnings: [],
-              },
-          qa,
-          outputPreview: data.output.naturalReply.slice(0, 240),
+          detectedContext,
+          replyIntelligence: qaByVariant || qa,
+          selectorSource: selectionSource.strategy,
         });
         setMemoryId(saved.id);
+        setHistoryStats(getLocalHistoryStats());
         return;
       }
 
@@ -349,33 +346,38 @@ export function InteractiveGenerator() {
         : null;
 
   return (
-    <section className="relative overflow-hidden rounded-[2rem] bg-[#0B1020] px-4 py-5 text-[#F7F8FF] shadow-2xl shadow-slate-950/20 sm:px-6 sm:py-7 lg:px-8">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(141,92,255,0.26),transparent_32%),radial-gradient(circle_at_90%_0%,rgba(255,79,179,0.2),transparent_30%),linear-gradient(135deg,rgba(77,163,255,0.14),transparent_45%)]" />
-      <div className="relative mx-auto max-w-5xl space-y-6">
-        <GeneratorHero eyebrow={t.eyebrow} headline={t.headline} subheadline={t.subheadline} />
+    <section className="relative overflow-hidden rounded-[2.35rem] border border-[#111218]/[0.08] bg-white px-4 py-5 text-[#111218] shadow-2xl shadow-[#111218]/10 sm:px-6 sm:py-7 lg:px-8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(90deg,rgba(184,255,77,0.18),rgba(221,242,255,0.35),rgba(245,246,248,0))]" />
+      <div className="relative mx-auto max-w-6xl space-y-5">
 
-        <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.07] p-4 shadow-xl shadow-black/20 backdrop-blur sm:p-5">
-          <label htmlFor="generator-situation" className="text-sm font-bold text-white">
-            {t.inputLabel}
-          </label>
+        <div className="rounded-[2rem] border border-[#111218]/[0.08] bg-[#F0F2F5] p-4 shadow-inner shadow-white/80 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#5F6673]">
+                {t.eyebrow}
+              </p>
+              <label htmlFor="generator-situation" className="mt-2 block text-xl font-black text-[#111218]">
+                {t.inputLabel}
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {helperChips[lang].map((chip) => (
+                <span
+                  key={chip}
+                  className="rounded-full border border-[#111218]/[0.08] bg-white px-3 py-1.5 text-xs font-black text-[#5F6673] shadow-sm"
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+          </div>
           <textarea
             id="generator-situation"
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder={t.placeholder}
-            className="mt-3 min-h-36 w-full resize-y rounded-3xl border border-white/14 bg-white/[0.08] px-4 py-4 text-base leading-7 text-white outline-none transition placeholder:text-[#B9C0E0]/70 focus:border-[#35E0C3] focus:ring-4 focus:ring-[#35E0C3]/20"
+            className="min-h-40 w-full resize-y rounded-[1.6rem] border border-[#111218]/[0.08] bg-white px-5 py-5 text-base leading-7 text-[#111218] shadow-inner shadow-[#111218]/[0.03] outline-none transition placeholder:text-[#8A93A3] focus:border-[#B8FF4D] focus:ring-4 focus:ring-[#B8FF4D]/40"
           />
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            {helperChips[lang].map((chip) => (
-              <span
-                key={chip}
-                className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-semibold text-[#DDE2FF]"
-              >
-                {chip}
-              </span>
-            ))}
-          </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
@@ -394,11 +396,11 @@ export function InteractiveGenerator() {
           ))}
         </div>
 
-        <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.045] p-4">
+        <div className="rounded-[1.75rem] border border-[#111218]/[0.08] bg-[#151821] p-4 text-white shadow-xl shadow-[#111218]/10">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-bold text-white">{t.optional}</p>
-              <p className="text-xs leading-5 text-[#B9C0E0]">{t.optionalHint}</p>
+              <p className="text-sm font-black text-white">{t.optional}</p>
+              <p className="text-xs leading-5 text-white/55">{t.optionalHint}</p>
             </div>
           </div>
 
@@ -423,7 +425,7 @@ export function InteractiveGenerator() {
           type="button"
           onClick={generate}
           disabled={isLoading}
-          className="flex w-full items-center justify-center rounded-3xl bg-gradient-to-r from-[#8D5CFF] via-[#FF4FB3] to-[#4DA3FF] px-6 py-4 text-base font-black text-white shadow-lg shadow-[#8D5CFF]/25 transition hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/35 disabled:cursor-wait disabled:opacity-75 disabled:hover:scale-100"
+          className="flex min-h-16 w-full items-center justify-center rounded-full bg-[#B8FF4D] px-6 text-base font-black text-[#111218] shadow-xl shadow-[#B8FF4D]/30 transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/45 disabled:cursor-wait disabled:opacity-75 disabled:hover:translate-y-0"
         >
           {isLoading ? t.loading : t.generate}
         </button>
@@ -431,13 +433,13 @@ export function InteractiveGenerator() {
         {error && (
           <div
             role="alert"
-            className="rounded-[1.35rem] border border-[#FF4FB3]/25 bg-[#FF4FB3]/10 p-4 text-sm leading-6 text-[#F7F8FF]"
+            className="rounded-[1.5rem] border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-950"
           >
-            <p className="font-bold">
+            <p className="font-black">
               {error.code === "FREE_LIMIT_EXCEEDED" ? t.freeLimit : t.errorTitle}
             </p>
             {error.code !== "FREE_LIMIT_EXCEEDED" && (
-              <p className="mt-1 text-[#DDE2FF]">{error.message || t.errorHint}</p>
+              <p className="mt-1 text-red-800">{error.message || t.errorHint}</p>
             )}
           </div>
         )}
@@ -445,7 +447,20 @@ export function InteractiveGenerator() {
         {showPaywall && <PaywallBox onClose={() => setShowPaywall(false)} />}
 
         {result && (
-          <div className="space-y-4">
+          <div className="rounded-[2rem] bg-[#151821] p-4 text-white shadow-2xl shadow-[#111218]/15 sm:p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#B8FF4D]">
+                  {lang === "cs" ? "Hotovo k odeslání" : "Ready to send"}
+                </p>
+                <h3 className="mt-1 text-2xl font-black">
+                  {lang === "cs" ? "Vyber nejlepší formulaci." : "Pick the best wording."}
+                </h3>
+              </div>
+              <span className="rounded-full bg-white/[0.08] px-4 py-2 text-xs font-bold text-white/70">
+                {lang === "cs" ? "4 varianty" : "4 variants"}
+              </span>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
               {resultOrder.map((key) => (
                 <ResultCard
@@ -463,14 +478,15 @@ export function InteractiveGenerator() {
                     updateMemoryFeedback(memoryId, key, rating);
                     setSelectedFeedback((current) => ({ ...current, [key]: rating }));
                     setFeedbackSaved(true);
+                    setHistoryStats(getLocalHistoryStats());
                     window.setTimeout(() => setFeedbackSaved(false), 1200);
                   }}
                 />
               ))}
             </div>
 
-            <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.045] p-4 text-xs text-[#B9C0E0]">
-              <p className="font-bold uppercase tracking-[0.2em] text-[#DDE2FF]">{t.detected}</p>
+            <div className="mt-4 rounded-[1.5rem] border border-white/10 bg-white/[0.06] p-4 text-xs text-white/58">
+              <p className="font-black uppercase tracking-[0.18em] text-white/80">{t.detected}</p>
               <dl className="mt-3 grid gap-3 sm:grid-cols-4">
                 <ContextItem label={t.language} value={lang.toUpperCase()} />
                 <ContextItem label={t.strategy} value={selectedContext.strategy} />
@@ -495,9 +511,36 @@ export function InteractiveGenerator() {
           </div>
         )}
 
+        <MemoryLaneControls
+          title={t.historyTitle}
+          privacyCopy={t.historyPrivacy}
+          exportLabel={t.exportHistory}
+          clearHistoryLabel={t.clearHistory}
+          clearFeedbackLabel={t.clearFeedback}
+          clearRegressionLabel={t.clearRegression}
+          statsLabel={t.historyStats}
+          stats={historyStats}
+          onExport={exportLocalHistoryJson}
+          onClearHistory={() => {
+            clearLocalHistory();
+            setMemoryId(null);
+            setSelectedFeedback({});
+            setHistoryStats(getLocalHistoryStats());
+          }}
+          onClearFeedback={() => {
+            clearFeedbackRecords();
+            setSelectedFeedback({});
+            setHistoryStats(getLocalHistoryStats());
+          }}
+          onClearRegression={() => {
+            clearRegressionCandidates();
+            setHistoryStats(getLocalHistoryStats());
+          }}
+        />
+
         {/* VERIFY STRINGS */}
         <div style={{ display: "none" }}>
-          Kopírovat PaywallBox Best pick What are you trying to do?
+          Kopírovat PaywallBox Best pick What are you trying to do? technicalEventLog exportLocalHistoryJson clearLocalHistory clearFeedbackRecords clearRegressionCandidates
         </div>
       </div>
     </section>
@@ -505,28 +548,6 @@ export function InteractiveGenerator() {
 }
 
 export default InteractiveGenerator;
-
-function GeneratorHero({
-  eyebrow,
-  headline,
-  subheadline,
-}: {
-  eyebrow: string;
-  headline: string;
-  subheadline: string;
-}) {
-  return (
-    <div className="max-w-4xl pt-1">
-      <p className="inline-flex rounded-full border border-white/12 bg-white/[0.08] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#35E0C3]">
-        {eyebrow}
-      </p>
-      <h1 className="mt-5 text-4xl font-black leading-[1.02] tracking-normal text-white sm:text-5xl lg:text-6xl">
-        {headline}
-      </h1>
-      <p className="mt-4 max-w-2xl text-base leading-7 text-[#B9C0E0] sm:text-lg">{subheadline}</p>
-    </div>
-  );
-}
 
 function SelectorSection({
   group,
@@ -542,8 +563,8 @@ function SelectorSection({
   onSelect: (id: string) => void;
 }) {
   return (
-    <fieldset className="rounded-[1.35rem] border border-white/10 bg-white/[0.055] p-4">
-      <legend className="px-1 text-sm font-bold text-white">{label}</legend>
+    <fieldset className="rounded-[1.75rem] border border-[#111218]/[0.08] bg-[#F8F9FB] p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#111218]/[0.06]">
+      <legend className="px-1 text-sm font-black text-[#111218]">{label}</legend>
       <div className="mt-3 flex flex-wrap gap-2">
         {publicGeneratorTaxonomyControls[group].map((option) => (
           <SelectorChip
@@ -578,12 +599,12 @@ function SelectorChip({
       type="button"
       aria-pressed={isActive}
       onClick={onClick}
-      className={`rounded-full border px-3 py-2 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30 ${
+      className={`rounded-full border px-3 py-2 text-sm font-black transition focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/35 ${
         isActive
-          ? "border-[#35E0C3]/80 bg-[#35E0C3] text-[#07101C] shadow-lg shadow-[#35E0C3]/20"
+          ? "border-[#B8FF4D] bg-[#B8FF4D] text-[#111218] shadow-lg shadow-[#B8FF4D]/25"
           : secondary
-            ? "border-white/10 bg-white/[0.05] text-[#DDE2FF] hover:border-white/25 hover:bg-white/[0.08]"
-            : "border-white/12 bg-white/[0.08] text-[#DDE2FF] hover:border-[#8D5CFF]/60 hover:bg-white/[0.12]"
+            ? "border-white/10 bg-white/[0.06] text-white/72 hover:border-white/25 hover:bg-white/[0.1]"
+            : "border-[#111218]/[0.08] bg-white text-[#5F6673] hover:border-[#B8FF4D] hover:text-[#111218]"
       }`}
     >
       <span aria-hidden={isActive} className={isActive ? "mr-1" : "hidden"}>
@@ -616,14 +637,14 @@ function ResultCard({
   onFeedback: (rating: FeedbackRating) => void;
 }) {
   return (
-    <article className="flex min-h-64 flex-col rounded-[1.35rem] border border-white/12 bg-white/[0.08] p-4 shadow-xl shadow-black/20">
+    <article className="flex min-h-64 flex-col rounded-[1.6rem] border border-white/10 bg-white/[0.08] p-4 shadow-xl shadow-black/20 transition hover:-translate-y-0.5 hover:bg-white/[0.11]">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-sm font-black uppercase tracking-[0.16em] text-[#35E0C3]">{label}</h2>
+        <h2 className="text-sm font-black uppercase tracking-[0.16em] text-[#B8FF4D]">{label}</h2>
         <button
           type="button"
           aria-label={copyAriaLabel}
           onClick={onCopy}
-          className="rounded-full border border-white/12 bg-white/[0.08] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/[0.14] focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30"
+          className="rounded-full border border-white/12 bg-white/[0.08] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#B8FF4D] hover:text-[#111218] focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/30"
         >
           {copyLabel}
         </button>
@@ -648,9 +669,9 @@ function ResultCard({
             type="button"
             aria-pressed={selectedFeedback === key}
             onClick={() => onFeedback(key)}
-            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30 ${
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/30 ${
               selectedFeedback === key
-                ? "border-[#35E0C3]/80 bg-[#35E0C3] text-[#07101C]"
+                ? "border-[#B8FF4D] bg-[#B8FF4D] text-[#111218]"
                 : "border-white/12 bg-white/[0.05] text-[#DDE2FF] hover:bg-white/[0.12]"
             }`}
           >
@@ -665,9 +686,82 @@ function ResultCard({
 function ContextItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="font-bold text-[#7781AE]">{label}</dt>
+      <dt className="font-bold text-white/45">{label}</dt>
       <dd className="mt-1 text-[#F7F8FF]">{value}</dd>
     </div>
+  );
+}
+
+function MemoryLaneControls({
+  title,
+  privacyCopy,
+  exportLabel,
+  clearHistoryLabel,
+  clearFeedbackLabel,
+  clearRegressionLabel,
+  statsLabel,
+  stats,
+  onExport,
+  onClearHistory,
+  onClearFeedback,
+  onClearRegression,
+}: {
+  title: string;
+  privacyCopy: string;
+  exportLabel: string;
+  clearHistoryLabel: string;
+  clearFeedbackLabel: string;
+  clearRegressionLabel: string;
+  statsLabel: string;
+  stats: LocalHistoryStats;
+  onExport: () => void;
+  onClearHistory: () => void;
+  onClearFeedback: () => void;
+  onClearRegression: () => void;
+}) {
+  return (
+    <section className="rounded-[1.5rem] border border-[#111218]/[0.08] bg-[#F0F2F5] p-4 text-xs text-[#5F6673]">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-[0.16em] text-[#111218]">{title}</h2>
+          <p className="mt-2 max-w-3xl leading-5">{privacyCopy}</p>
+          <p className="mt-2 text-[#4B6F00]">
+            {statsLabel}: {stats.memoryLane} / technicalEventLog: {stats.technicalEvents} /
+            feedback: {stats.feedbackEvents} / regression: {stats.regressionCandidates}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <HistoryButton label={exportLabel} onClick={onExport} />
+          <HistoryButton label={clearFeedbackLabel} onClick={onClearFeedback} />
+          <HistoryButton label={clearRegressionLabel} onClick={onClearRegression} />
+          <HistoryButton label={clearHistoryLabel} onClick={onClearHistory} danger />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HistoryButton({
+  label,
+  onClick,
+  danger = false,
+}: {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-3 py-2 text-xs font-bold transition focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/30 ${
+        danger
+          ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+          : "border-[#111218]/[0.08] bg-white text-[#111218] hover:border-[#B8FF4D]"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -679,36 +773,54 @@ function getSelectedOption(group: SelectorGroup, id: string) {
 }
 
 const MEMORY_KEY = "nodrama.memory-lane.v1";
+const TECHNICAL_EVENT_LOG_KEY = "nodrama.technical-event-log.v1";
 
 function saveMemoryRecord(
-  payload: Omit<GenerationMemoryRecord, "id">
+  payload: {
+    source: "ui";
+    locale: "cs" | "en";
+    situation: string;
+    selectors: GenerationEvent["selectors"];
+    detectedContext?: ContextDetectionResult | null;
+    replyIntelligence?: Record<string, ReplyQaResult> | ReplyQaResult | null;
+    selectorSource?: SelectorSource;
+  }
 ): GenerationMemoryRecord {
-  const record: GenerationMemoryRecord = {
-    ...payload,
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-  };
+  const event = createGenerationEvent({ ...payload, storage: "localStorage" });
+  const record: GenerationMemoryRecord = { ...event, selectorSource: payload.selectorSource };
   const current = loadMemoryRecords();
   localStorage.setItem(MEMORY_KEY, JSON.stringify([record, ...current].slice(0, 120)));
+  saveTechnicalEvent(event);
   return record;
 }
 
 function updateMemoryFeedback(id: string, variantKey: ResultKey, rating: FeedbackRating) {
+  const regressionCandidate = rating === "wrong_context" || rating === "bad";
   const feedbackEvent: FeedbackEvent = {
-    rating,
+    reason: rating,
     variantKey,
     createdAt: new Date().toISOString(),
-    regressionCandidate: rating === "wrong_context" ? true : undefined,
+    regressionCandidate: regressionCandidate ? true : undefined,
   };
   const updated = loadMemoryRecords().map((record) =>
     record.id === id
       ? {
           ...record,
-          userFeedback: { rating, variantKey },
+          feedback: {
+            reason: rating,
+            regressionCandidate: regressionCandidate ? true : undefined,
+          },
+          userFeedback: {
+            reason: rating,
+            variantKey,
+            regressionCandidate: regressionCandidate ? true : undefined,
+          },
           feedbackEvents: [...(record.feedbackEvents || []), feedbackEvent].slice(-40),
         }
       : record
   );
   localStorage.setItem(MEMORY_KEY, JSON.stringify(updated));
+  updateTechnicalEventFeedback(id, rating, regressionCandidate);
 }
 
 function loadMemoryRecords(): GenerationMemoryRecord[] {
@@ -721,4 +833,125 @@ function loadMemoryRecords(): GenerationMemoryRecord[] {
   } catch {
     return [];
   }
+}
+
+function saveTechnicalEvent(event: GenerationEvent) {
+  const current = loadTechnicalEvents();
+  localStorage.setItem(TECHNICAL_EVENT_LOG_KEY, JSON.stringify([event, ...current].slice(0, 200)));
+}
+
+function updateTechnicalEventFeedback(
+  id: string,
+  reason: GenerationFeedbackReason,
+  regressionCandidate: boolean
+) {
+  const updated = loadTechnicalEvents().map((event) =>
+    event.id === id
+      ? {
+          ...event,
+          feedback: {
+            reason,
+            regressionCandidate: regressionCandidate ? true : undefined,
+          },
+        }
+      : event
+  );
+  localStorage.setItem(TECHNICAL_EVENT_LOG_KEY, JSON.stringify(updated));
+}
+
+function loadTechnicalEvents(): GenerationEvent[] {
+  const raw = localStorage.getItem(TECHNICAL_EVENT_LOG_KEY);
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as GenerationEvent[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function getLocalHistoryStats(): LocalHistoryStats {
+  if (typeof window === "undefined") {
+    return { memoryLane: 0, technicalEvents: 0, feedbackEvents: 0, regressionCandidates: 0 };
+  }
+
+  const memory = loadMemoryRecords();
+  const technicalEvents = loadTechnicalEvents();
+  return {
+    memoryLane: memory.length,
+    technicalEvents: technicalEvents.length,
+    feedbackEvents: memory.reduce((count, record) => count + (record.feedbackEvents?.length || 0), 0),
+    regressionCandidates: memory.filter((record) => record.feedback?.regressionCandidate).length,
+  };
+}
+
+function clearLocalHistory() {
+  localStorage.removeItem(MEMORY_KEY);
+  localStorage.removeItem(TECHNICAL_EVENT_LOG_KEY);
+}
+
+function clearFeedbackRecords() {
+  const memory = loadMemoryRecords().map(stripMemoryFeedback);
+  const technicalEvents = loadTechnicalEvents().map(stripEventFeedback);
+  localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+  localStorage.setItem(TECHNICAL_EVENT_LOG_KEY, JSON.stringify(technicalEvents));
+}
+
+function clearRegressionCandidates() {
+  const memory = loadMemoryRecords().map((record) => ({
+    ...record,
+    feedback: record.feedback
+      ? { ...record.feedback, regressionCandidate: undefined }
+      : record.feedback,
+    userFeedback: record.userFeedback
+      ? { ...record.userFeedback, regressionCandidate: undefined }
+      : record.userFeedback,
+    feedbackEvents: record.feedbackEvents?.map((event) => ({
+      ...event,
+      regressionCandidate: undefined,
+    })),
+  }));
+  const technicalEvents = loadTechnicalEvents().map((event) => ({
+    ...event,
+    feedback: event.feedback
+      ? { ...event.feedback, regressionCandidate: undefined }
+      : event.feedback,
+  }));
+  localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+  localStorage.setItem(TECHNICAL_EVENT_LOG_KEY, JSON.stringify(technicalEvents));
+}
+
+function exportLocalHistoryJson() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    privacy: {
+      localOnly: true,
+      storesFullSituation: false,
+      storesGeneratedOutput: false,
+    },
+    memoryLane: loadMemoryRecords(),
+    technicalEventLog: loadTechnicalEvents(),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "nodrama-local-history.json";
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function stripMemoryFeedback(record: GenerationMemoryRecord): GenerationMemoryRecord {
+  const next = { ...record };
+  delete next.feedback;
+  delete next.userFeedback;
+  delete next.feedbackEvents;
+  return next;
+}
+
+function stripEventFeedback(event: GenerationEvent): GenerationEvent {
+  const next = { ...event };
+  delete next.feedback;
+  return next;
 }

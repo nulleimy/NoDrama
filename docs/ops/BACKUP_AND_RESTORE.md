@@ -15,6 +15,8 @@ Back up these data classes when storage exists for them:
 - Favorites: user-selected favorite responses or templates.
 - Safe event logs: metadata-only operational events used for debugging and
   abuse prevention.
+- Local Memory Lane records: browser localStorage metadata-only history when
+  exported by the user.
 
 ## Data That Must Not Be Stored In Technical Logs
 

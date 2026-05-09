@@ -36,3 +36,5 @@ next-env.d.ts
 data/analytics/*.jsonl
 # local credit store
 data/credits/*.json
+# local runtime reports
+data/runtime/
