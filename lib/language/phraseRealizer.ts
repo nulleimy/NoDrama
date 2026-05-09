@@ -24,11 +24,13 @@ type RealizerInput = {
   style: ReplyStyle;
   channel: ReplyChannel;
   composed: GenerateResponse["output"];
+  detectedScenarioFamily?: string;
   contentDepth: {
     scenarioCategory: string;
     tonePresetId: string;
     selectorMixing: {
       inferredDomain: string;
+      inferredScenarioFamily?: string;
       selectors: {
         tone: { id: string };
         relationship: { id: string };
@@ -292,6 +294,25 @@ function resolveRealizerFamily(input: RealizerInput): RealizerFamily {
   const strategyId = input.contentDepth.selectorMixing.selectors.strategy.id;
   const intent = input.category.intent;
   const domain = input.category.domain;
+  const scenarioFamily =
+    input.detectedScenarioFamily ||
+    input.contentDepth.selectorMixing.inferredScenarioFamily;
+
+  if (
+    [
+      "work_social_invitation",
+      "authority_social_decline",
+      "social_invitation_decline",
+    ].includes(scenarioFamily || "")
+  ) {
+    return "decline";
+  }
+
+  if (scenarioFamily === "work_deadline_delay") return "delay";
+  if (scenarioFamily === "client_scope_negotiation") return "negotiate";
+  if (scenarioFamily === "money_refuse_loan") return "boundary";
+  if (scenarioFamily === "family_pressure_boundary") return "boundary";
+  if (scenarioFamily === "repair_after_mistake") return "repair";
 
   if (strategyId === "repair" || intent === "apology") return "repair";
   if (strategyId === "delay" || intent === "delay" || intent === "reschedule") {
