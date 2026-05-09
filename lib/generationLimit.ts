@@ -1,15 +1,12 @@
-type LimitBypassEnv = Record<string, string | undefined> & {
-  NODRAMA_TEST_MODE?: string;
-  NODRAMA_DISABLE_FREE_LIMIT?: string;
-};
+import { isGenerationLimitBypassed } from "./featureFlags.mjs";
+import type { NoDramaFeatureFlagEnv } from "./featureFlags";
 
 export function isLocalGenerationLimitBypassed(
-  env: LimitBypassEnv = process.env
+  env: NoDramaFeatureFlagEnv = process.env
 ) {
-  return (
-    env.NODRAMA_TEST_MODE === "true" ||
-    env.NODRAMA_DISABLE_FREE_LIMIT === "true"
-  );
+  return (isGenerationLimitBypassed as (
+    env?: NoDramaFeatureFlagEnv
+  ) => boolean)(env);
 }
 
 export function shouldBlockFreeGeneration({
