@@ -13,8 +13,10 @@ This bundle adds deterministic context intelligence around the existing NoDrama 
   - ambiguity warnings
 - Intent conflict detection between selected strategy and inferred scenario.
 - Scenario routing guard that prevents invitation contexts from being rendered as deadline-delay language.
+- School deadline extension routing for Czech homework/extension signals such as `odevzdat`, `slohovou práci`, `odklad`, `dalších pět dní`, and `nestíhám`.
+- Money-loan refusal realization that uses boundary wording instead of generic invitation decline language.
 - Deterministic second-pass QA with verdicts (`pass` / `rewrite` / `reject`) and forbidden scenario-term checks.
-- Negative phrase guards for invitation, boundary, money, and family-pressure contexts.
+- Negative phrase guards for invitation, deadline, boundary, money, and family-pressure contexts.
 - Local-first Memory Lane MVP in UI localStorage (`nodrama.memory-lane.v1`).
 - Feedback chips on result cards that persist local-only feedback metadata into Memory Lane records.
   - Supported reasons: `good`, `bad`, `wrong_context`, `too_formal`, `too_harsh`, `not_sendable`.
