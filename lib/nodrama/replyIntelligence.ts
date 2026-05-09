@@ -1,6 +1,7 @@
 export type DetectorLanguage = "cs" | "en";
 export type DetectorDomain =
   | "work"
+  | "school"
   | "social"
   | "family"
   | "dating"
@@ -12,6 +13,7 @@ export type DetectorDomain =
 export type ScenarioFamily =
   | "work_social_invitation"
   | "work_deadline_delay"
+  | "school_deadline_extension"
   | "social_invitation_decline"
   | "authority_social_decline"
   | "client_scope_negotiation"
@@ -67,6 +69,30 @@ const deadlineSignals = [
   "send a realistic next date",
 ];
 
+const schoolDeadlineSignals = [
+  "odevzdat",
+  "slohova prace",
+  "slohová práce",
+  "slohovou praci",
+  "slohovou práci",
+  "odklad",
+  "dalsich pet dni",
+  "dalších pět dní",
+  "nestiham",
+  "nestíhám",
+];
+
+const schoolSpecificSignals = [
+  "odevzdat",
+  "slohova prace",
+  "slohová práce",
+  "slohovou praci",
+  "slohovou práci",
+  "odklad",
+  "dalsich pet dni",
+  "dalších pět dní",
+];
+
 const invitationSignals = [
   "invite",
   "invited",
@@ -115,6 +141,28 @@ const forbiddenByScenario: Record<string, string[]> = {
     "deliverable",
     "send a realistic next date",
   ],
+  work_deadline_delay: [
+    "pozvání",
+    "pozvani",
+    "oslava",
+    "přidám se",
+    "pridam se",
+    "jste na mě mysleli",
+    "jste na me mysleli",
+    "invitation",
+    "party",
+  ],
+  school_deadline_extension: [
+    "pozvání",
+    "pozvani",
+    "oslava",
+    "přidám se",
+    "pridam se",
+    "jste na mě mysleli",
+    "jste na me mysleli",
+    "invitation",
+    "party",
+  ],
   social_invitation_decline: [
     "termín",
     "deadline",
@@ -129,7 +177,18 @@ const forbiddenByScenario: Record<string, string[]> = {
     "deliverable",
     "posunout",
   ],
-  money_refuse_loan: ["scope", "rozsah", "deliverable"],
+  money_refuse_loan: [
+    "scope",
+    "rozsah",
+    "deliverable",
+    "pozvání",
+    "pozvani",
+    "oslava",
+    "přidám se",
+    "pridam se",
+    "jste na mě mysleli",
+    "jste na me mysleli",
+  ],
   family_pressure_boundary: ["i am so sorry", "strašně se omlouvám", "hrozne se omlouvam"],
 };
 
@@ -152,7 +211,9 @@ export function detectReplyContext(text: string): ContextDetectionResult {
   const language: DetectorLanguage = /[áčďéěíňóřšťúůýž]/i.test(text) ? "cs" : "en";
   const hasAuthority = hasAny(normalized, authoritySignals);
   const hasInvite = hasAny(normalized, invitationSignals);
-  const hasDeadline = hasAny(normalized, deadlineSignals);
+  const hasSchoolDeadline =
+    hasAny(normalized, schoolDeadlineSignals) && hasAny(normalized, schoolSpecificSignals);
+  const hasDeadline = hasAny(normalized, deadlineSignals) || hasSchoolDeadline;
   const hasFamily = hasAny(normalized, familySignals);
   const hasMoney = hasAny(normalized, moneySignals);
   const hasClient = hasAny(normalized, clientSignals);
@@ -162,6 +223,7 @@ export function detectReplyContext(text: string): ContextDetectionResult {
   if (hasAuthority) reasons.push("authority_signal");
   if (hasInvite) reasons.push("invitation_signal");
   if (hasDeadline) reasons.push("deadline_signal");
+  if (hasSchoolDeadline) reasons.push("school_deadline_signal");
   if (hasFamily) reasons.push("family_signal");
   if (hasMoney) reasons.push("money_signal");
   if (hasClient) reasons.push("client_scope_signal");
@@ -175,7 +237,14 @@ export function detectReplyContext(text: string): ContextDetectionResult {
   let channelSuggestion = "messenger_1to1";
   let toneSuggestion = "neutral";
 
-  if (hasClient) {
+  if (hasSchoolDeadline) {
+    domain = "school";
+    scenarioFamily = "school_deadline_extension";
+    relationshipSuggestion = "authority";
+    strategySuggestion = "delay";
+    channelSuggestion = "email";
+    toneSuggestion = "formal";
+  } else if (hasClient) {
     domain = "client_business";
     scenarioFamily = "client_scope_negotiation";
     relationshipSuggestion = "client";
@@ -277,7 +346,10 @@ export function detectIntentConflict(
       : "This looks more like an invitation than a deadline. Do you want to buy time, or decline kindly now?";
   }
 
-  if (strategyId === "soft_decline" && detected.scenarioFamily === "work_deadline_delay") {
+  if (
+    strategyId === "soft_decline" &&
+    ["work_deadline_delay", "school_deadline_extension"].includes(detected.scenarioFamily)
+  ) {
     return detected.language === "cs"
       ? "Tohle vypadá jako termínový kontext. Nechceš raději zvolit strategii získání času?"
       : "This looks like a deadline context. Consider switching to a delay strategy.";
@@ -290,6 +362,13 @@ export function resolveScenarioRoute(
   selectedStrategyId: string,
   detected: ContextDetectionResult
 ): "delay" | "decline" | "boundary" | "repair" | "negotiate" | "clarify" | "redirect" | "exit" {
+  if (detected.scenarioFamily === "money_refuse_loan") return "boundary";
+  if (
+    ["work_deadline_delay", "school_deadline_extension"].includes(detected.scenarioFamily)
+  ) {
+    return "delay";
+  }
+
   if (
     ["work_social_invitation", "social_invitation_decline", "authority_social_decline"].includes(
       detected.scenarioFamily
@@ -330,7 +409,10 @@ export function runReplyQa(args: {
 
   const strategyConflict = detectIntentConflict(args.strategyId, args.detected);
   if (strategyConflict) reasons.push("intent_conflict_detected");
-  if (forbiddenTermsHit.length > 0) reasons.push("forbidden_scenario_terms_hit");
+  if (forbiddenTermsHit.length > 0) {
+    reasons.push("forbidden_scenario_terms_hit");
+    reasons.push("scenario_vocabulary_conflict");
+  }
 
   const contextFit = forbiddenTermsHit.length ? 0.35 : 0.9;
   const strategyFit = strategyConflict ? 0.45 : 0.9;

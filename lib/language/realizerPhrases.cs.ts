@@ -15,6 +15,7 @@ export type RealizerFamily =
   | "decline"
   | "boundary"
   | "work"
+  | "money_refuse_loan"
   | "negotiate"
   | "clarify"
   | "redirect"
@@ -108,18 +109,46 @@ function slotsByFamily(
       ],
       boundary: [
         "V aktuálních podmínkách to nepotvrdím.",
-        "Mohu pokračovat jen po úpravě: rozsah, termín nebo rozpočet.",
+        "Mohu pokračovat jen po úpravě rozsahu, termínu nebo priority.",
         "Bez změny rozsahu by to nebylo fér očekávání.",
       ],
       softener: ["Chci, aby výsledek zůstal použitelný.", "Nechci blokovat postup, jen ho potřebuji nastavit realisticky."],
       nextStep: [
         "Navrhuji potvrdit prioritu a podle ní upravit zadání.",
-        "Pojďme potvrdit, jestli se mění rozsah, cena nebo termín.",
+        "Pojďme si vybrat, co je teď nejdůležitější.",
       ],
       closing: formal ? ["Děkuji."] : ["Pak se můžu jasně zavázat."],
       pressureFollowUp: [
         "Rozumím, že chcete odpověď hned, ale bez jasného rozsahu bych slíbil něco nereálného.",
         "Chápu, že chceš rychlé ano, ale bez úpravy rozsahu bych sliboval něco nereálného.",
+      ],
+    };
+  }
+
+  if (family === "money_refuse_loan") {
+    return {
+      opener: formal ? ["Rozumím té prosbě.", "Děkuji, že to říkáte přímo."] : ["Hele, chápu.", "Rozumím, že to řešíš."],
+      reason: [
+        "Nechci půjčování peněz míchat do vztahu mezi námi.",
+        "V penězích teď potřebuji držet jasnou hranici.",
+      ],
+      boundary: [
+        "Peníze teď půjčovat nechci.",
+        "Půjčku teď slíbit nemůžu.",
+        "Moje odpověď je v tomhle ne.",
+      ],
+      softener: [
+        "Nechci to mezi námi komplikovat.",
+        "Říkám to rovnou, aby v tom nebylo falešné očekávání.",
+      ],
+      nextStep: [
+        "Nechám to prosím takhle.",
+        "Prosím ber to jako jasnou odpověď.",
+      ],
+      closing: formal ? ["Děkuji za pochopení."] : ["Díky za pochopení."],
+      pressureFollowUp: [
+        "Rozumím, že je to nepříjemné, ale peníze půjčovat nebudu. Nechci to dál otevírat.",
+        "Chápu, že bys chtěl jinou odpověď, ale peníze půjčovat nechci. Nechci to mezi námi komplikovat.",
       ],
     };
   }
@@ -190,7 +219,7 @@ function slotsByFamily(
     softener: ["Vážím si toho, že jste na mě mysleli.", "Díky, že ses ozval."],
     nextStep: [
       "Nechám to tentokrát takhle.",
-      `${address.please[0].toUpperCase()}${address.please.slice(1)}, ${address.respect} to.`,
+      "Tentokrát se nepřidám.",
     ],
     closing: formal ? ["Děkuji za pochopení."] : ["Díky za pochopení."],
     pressureFollowUp: [

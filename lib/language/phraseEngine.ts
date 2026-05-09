@@ -104,7 +104,7 @@ export function generatePhraseEngineReply(
     channel,
     contentDepth,
     composed: composedOutput,
-    detectedScenarioFamily: detectedContext.scenarioFamily,
+    routeOverride,
   });
 
   const qaByVariant = {
