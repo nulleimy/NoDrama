@@ -16,7 +16,9 @@ This bundle adds deterministic context intelligence around the existing NoDrama 
 - Deterministic second-pass QA with verdicts (`pass` / `rewrite` / `reject`) and forbidden scenario-term checks.
 - Negative phrase guards for invitation, boundary, money, and family-pressure contexts.
 - Local-first Memory Lane MVP in UI localStorage (`nodrama.memory-lane.v1`).
-- Feedback chips on result cards that persist into Memory Lane records.
+- Feedback chips on result cards that persist local-only feedback metadata into Memory Lane records.
+  - Supported reasons: `good`, `bad`, `wrong_context`, `too_formal`, `too_harsh`, `not_sendable`.
+  - `wrong_context` is marked as a future regression candidate for QA review.
 - Regression verifier: `scripts/verify-reply-intelligence-v2.mjs` wired into `npm run verify`.
 
 ## Safety constraints preserved

@@ -27,8 +27,14 @@ type FeedbackRating =
   | "wrong_context"
   | "too_formal"
   | "too_harsh"
-  | "too_fake"
   | "not_sendable";
+
+type FeedbackEvent = {
+  rating: FeedbackRating;
+  variantKey: ResultKey;
+  createdAt: string;
+  regressionCandidate?: boolean;
+};
 
 type GenerationMemoryRecord = {
   id: string;
@@ -53,8 +59,10 @@ type GenerationMemoryRecord = {
   outputPreview?: string;
   userFeedback?: {
     rating: FeedbackRating;
+    variantKey?: ResultKey;
     note?: string;
   };
+  feedbackEvents?: FeedbackEvent[];
 };
 
 const primaryGroups: SelectorGroup[] = ["tone", "relationship", "strategy"];
@@ -105,7 +113,6 @@ const copy = {
       wrong_context: "Špatný kontext",
       too_formal: "Moc formální",
       too_harsh: "Moc ostré",
-      too_fake: "Zní trapně",
       not_sendable: "Neposlatelné",
     },
   },
@@ -150,7 +157,6 @@ const copy = {
       wrong_context: "Wrong context",
       too_formal: "Too formal",
       too_harsh: "Too harsh",
-      too_fake: "Sounds fake",
       not_sendable: "Not sendable",
     },
   },
@@ -184,6 +190,7 @@ export function InteractiveGenerator() {
   const [qaSummary, setQaSummary] = useState<ReplyQaResult | null>(null);
   const [memoryId, setMemoryId] = useState<string | null>(null);
   const [feedbackSaved, setFeedbackSaved] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState<Partial<Record<ResultKey, FeedbackRating>>>({});
 
   useEffect(() => {
     if (input.trim().length < 6) {
@@ -259,6 +266,8 @@ export function InteractiveGenerator() {
 
       if (data.ok) {
         setResult(data.output);
+        setSelectedFeedback({});
+        setFeedbackSaved(false);
         const qa = (data.meta as { replyIntelligence?: { qaByVariant?: Record<string, ReplyQaResult> } } | undefined)
           ?.replyIntelligence?.qaByVariant?.naturalReply;
         setQaSummary(qa || null);
@@ -448,9 +457,11 @@ export function InteractiveGenerator() {
                   microActions={t.microActions}
                   onCopy={() => copyResult(key, result[key])}
                   feedbackLabels={t.feedbackLabels}
+                  selectedFeedback={selectedFeedback[key]}
                   onFeedback={(rating) => {
                     if (!memoryId) return;
-                    updateMemoryFeedback(memoryId, rating);
+                    updateMemoryFeedback(memoryId, key, rating);
+                    setSelectedFeedback((current) => ({ ...current, [key]: rating }));
                     setFeedbackSaved(true);
                     window.setTimeout(() => setFeedbackSaved(false), 1200);
                   }}
@@ -591,6 +602,7 @@ function ResultCard({
   microActions,
   onCopy,
   feedbackLabels,
+  selectedFeedback,
   onFeedback,
 }: {
   label: string;
@@ -600,6 +612,7 @@ function ResultCard({
   microActions: string[];
   onCopy: () => void;
   feedbackLabels: Record<FeedbackRating, string>;
+  selectedFeedback?: FeedbackRating;
   onFeedback: (rating: FeedbackRating) => void;
 }) {
   return (
@@ -633,8 +646,13 @@ function ResultCard({
           <button
             key={key}
             type="button"
+            aria-pressed={selectedFeedback === key}
             onClick={() => onFeedback(key)}
-            className="rounded-full border border-white/12 bg-white/[0.05] px-2.5 py-1 text-[11px] font-bold text-[#DDE2FF] hover:bg-white/[0.12]"
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30 ${
+              selectedFeedback === key
+                ? "border-[#35E0C3]/80 bg-[#35E0C3] text-[#07101C]"
+                : "border-white/12 bg-white/[0.05] text-[#DDE2FF] hover:bg-white/[0.12]"
+            }`}
           >
             {feedbackLabels[key]}
           </button>
@@ -674,9 +692,21 @@ function saveMemoryRecord(
   return record;
 }
 
-function updateMemoryFeedback(id: string, rating: FeedbackRating) {
+function updateMemoryFeedback(id: string, variantKey: ResultKey, rating: FeedbackRating) {
+  const feedbackEvent: FeedbackEvent = {
+    rating,
+    variantKey,
+    createdAt: new Date().toISOString(),
+    regressionCandidate: rating === "wrong_context" ? true : undefined,
+  };
   const updated = loadMemoryRecords().map((record) =>
-    record.id === id ? { ...record, userFeedback: { rating } } : record
+    record.id === id
+      ? {
+          ...record,
+          userFeedback: { rating, variantKey },
+          feedbackEvents: [...(record.feedbackEvents || []), feedbackEvent].slice(-40),
+        }
+      : record
   );
   localStorage.setItem(MEMORY_KEY, JSON.stringify(updated));
 }
