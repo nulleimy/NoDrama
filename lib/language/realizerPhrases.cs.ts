@@ -224,7 +224,7 @@ function slotsByFamily(
         ],
     softener: formal
       ? ["Děkuji za pochopení.", "Vážím si pozvání."]
-      : ["Vážím si toho, že jsi na mě myslel/a.", "Díky za pochopení."],
+      : ["Vážím si toho, že na mě myslíš.", "Díky za pochopení."],
     nextStep: formal
       ? ["Nechám to tentokrát takhle.", "Tentokrát se nezúčastním."]
       : ["Nechám to tentokrát takhle.", "Tentokrát to vynechám."],

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 import {
@@ -8,6 +9,7 @@ import {
 } from "../lib/nodrama/replyIntelligence.ts";
 
 const confidenceRank = { low: 1, medium: 2, high: 3 };
+const writeReport = process.argv.includes("--write-report");
 const genericInvitationTerms = [
   "pozvání",
   "akce",
@@ -157,6 +159,10 @@ function includesTerm(text, term) {
   return normalize(text).includes(normalize(term));
 }
 
+function hashInput(input) {
+  return createHash("sha256").update(input).digest("hex").slice(0, 16);
+}
+
 function assertExpectedContext(result, expected, id) {
   for (const key of [
     "domain",
@@ -212,16 +218,20 @@ for (const scenario of scenarios) {
   results.push({
     id: scenario.id,
     ok: true,
+    inputPreview: scenario.input.slice(0, 120),
+    inputHash: hashInput(scenario.input),
     detected,
     outputPreview: scenario.output,
     qa,
   });
 }
 
-mkdirSync("data/runtime/smoke-results", { recursive: true });
-writeFileSync(
-  "data/runtime/smoke-results/latest.json",
-  `${JSON.stringify({ generatedAt: new Date().toISOString(), results }, null, 2)}\n`
-);
+if (writeReport) {
+  mkdirSync("data/runtime/smoke-results", { recursive: true });
+  writeFileSync(
+    "data/runtime/smoke-results/latest.json",
+    `${JSON.stringify({ generatedAt: new Date().toISOString(), results }, null, 2)}\n`
+  );
+}
 
 console.log(`CLI scenario smoke passed: ${results.length} / ${results.length}`);
