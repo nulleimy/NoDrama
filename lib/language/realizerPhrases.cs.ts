@@ -211,16 +211,23 @@ function slotsByFamily(
       "Nechci si vymýšlet důvody ani to zbytečně natahovat.",
       "Říkám to raději rovnou, aby v tom nebylo zbytečné očekávání.",
     ],
-    boundary: [
-      "Tentokrát do toho nepůjdu.",
-      "Tohle teď nemohu přijmout.",
-      "Moje odpověď je tentokrát ne.",
-    ],
-    softener: ["Vážím si toho, že jste na mě mysleli.", "Díky, že ses ozval."],
-    nextStep: [
-      "Nechám to tentokrát takhle.",
-      "Tentokrát se nepřidám.",
-    ],
+    boundary: formal
+      ? [
+          "Tentokrát se nezúčastním.",
+          "Tohle teď nemohu přijmout.",
+          "Moje odpověď je tentokrát ne.",
+        ]
+      : [
+          "Tentokrát to vynechám.",
+          "Tohle teď nemůžu vzít.",
+          "Moje odpověď je tentokrát ne.",
+        ],
+    softener: formal
+      ? ["Děkuji za pochopení.", "Vážím si pozvání."]
+      : ["Vážím si toho, že jsi na mě myslel/a.", "Díky za pochopení."],
+    nextStep: formal
+      ? ["Nechám to tentokrát takhle.", "Tentokrát se nezúčastním."]
+      : ["Nechám to tentokrát takhle.", "Tentokrát to vynechám."],
     closing: formal ? ["Děkuji za pochopení."] : ["Díky za pochopení."],
     pressureFollowUp: [
       "Rozumím, že byste chtěli jinou odpověď, ale svoje rozhodnutí neměním.",

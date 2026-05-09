@@ -12,9 +12,15 @@ export type DetectorDomain =
 
 export type ScenarioFamily =
   | "work_social_invitation"
+  | "work_extra_work_boundary"
   | "work_deadline_delay"
   | "school_deadline_extension"
   | "social_invitation_decline"
+  | "friend_help_capacity_decline"
+  | "repeated_favors_boundary"
+  | "social_dm_personal_boundary"
+  | "redirect_topic"
+  | "buy_time_no_deadline"
   | "authority_social_decline"
   | "client_scope_negotiation"
   | "family_pressure_boundary"
@@ -115,6 +121,61 @@ const moneySignals = ["pujc", "půjč", "loan", "borrow", "lend", "money", "peni
 const clientSignals = ["client", "klient", "scope", "rozsah", "budget", "rozpocet", "rozpočet"];
 const repairSignals = ["omlouv", "promin", "sorry", "apolog", "my fault", "moje chyba"];
 const pressureSignals = ["tlak", "pressure", "keeps pushing", "nuti", "nutí", "vycita", "vyčítá", "guilt"];
+const peerSignals = ["kolega", "kolegyn", "coworker", "peer", "colleague"];
+const extraWorkSignals = [
+  "prace navic",
+  "práci navíc",
+  "prace navíc",
+  "extra work",
+  "additional work",
+  "work outside scope",
+];
+const repeatedFavorSignals = [
+  "laskavost",
+  "laskavosti",
+  "favors",
+  "favours",
+  "porad chce",
+  "pořád chce",
+  "opakovaně chce",
+  "opakovane chce",
+  "porad po mne",
+  "pořád po mně",
+];
+const helpCapacitySignals = [
+  "pomoct",
+  "pomoc",
+  "help",
+  "stehovanim",
+  "stěhováním",
+  "moving",
+  "nemam energii",
+  "nemám energii",
+  "capacity",
+];
+const closeFriendSignals = ["blizka kamaradka", "blízká kamarádka", "close friend", "best friend"];
+const socialDmSignals = ["instagram", "ig", "dm", "social dm", "pise moc osobne", "píše moc osobně"];
+const personalBoundarySignals = ["osobne", "osobně", "personal", "ubrzdit", "slow down"];
+const redirectTopicSignals = [
+  "prevest jinam",
+  "převést jinam",
+  "redirect",
+  "jine tema",
+  "jiné téma",
+  "osobni tema",
+  "osobní téma",
+];
+const buyTimeSignals = [
+  "ziskat cas",
+  "získat čas",
+  "odpovedet hned",
+  "odpovědět hned",
+  "bez slibovani",
+  "bez slibování",
+  "konkretniho vysledku",
+  "konkrétního výsledku",
+  "buy time",
+];
 
 const fakeCueSignals = [
   "fake excuse",
@@ -129,6 +190,23 @@ const fakeCueSignals = [
   "výmluvu",
 ];
 
+const genericInvitationTerms = [
+  "pozvání",
+  "pozvani",
+  "akce",
+  "oslava",
+  "přidám se",
+  "pridam se",
+  "jste na mě mysleli",
+  "jste na me mysleli",
+  "ses ozval",
+  "ozvala",
+  "tentokrát do toho nepůjdu",
+  "tentokrat do toho nepujdu",
+  "invitation",
+  "party",
+];
+
 const forbiddenByScenario: Record<string, string[]> = {
   work_social_invitation: [
     "termín",
@@ -141,28 +219,23 @@ const forbiddenByScenario: Record<string, string[]> = {
     "deliverable",
     "send a realistic next date",
   ],
-  work_deadline_delay: [
-    "pozvání",
-    "pozvani",
-    "oslava",
-    "přidám se",
-    "pridam se",
-    "jste na mě mysleli",
-    "jste na me mysleli",
-    "invitation",
-    "party",
+  work_extra_work_boundary: genericInvitationTerms,
+  repeated_favors_boundary: genericInvitationTerms,
+  friend_help_capacity_decline: genericInvitationTerms,
+  social_dm_personal_boundary: genericInvitationTerms,
+  redirect_topic: genericInvitationTerms,
+  buy_time_no_deadline: [
+    ...genericInvitationTerms,
+    "termín",
+    "termin",
+    "deadline",
+    "dodám další krok",
+    "dodam dalsi krok",
+    "výstup",
+    "vystup",
   ],
-  school_deadline_extension: [
-    "pozvání",
-    "pozvani",
-    "oslava",
-    "přidám se",
-    "pridam se",
-    "jste na mě mysleli",
-    "jste na me mysleli",
-    "invitation",
-    "party",
-  ],
+  work_deadline_delay: genericInvitationTerms,
+  school_deadline_extension: genericInvitationTerms,
   social_invitation_decline: [
     "termín",
     "deadline",
@@ -181,15 +254,14 @@ const forbiddenByScenario: Record<string, string[]> = {
     "scope",
     "rozsah",
     "deliverable",
-    "pozvání",
-    "pozvani",
-    "oslava",
-    "přidám se",
-    "pridam se",
-    "jste na mě mysleli",
-    "jste na me mysleli",
+    ...genericInvitationTerms,
   ],
-  family_pressure_boundary: ["i am so sorry", "strašně se omlouvám", "hrozne se omlouvam"],
+  family_pressure_boundary: [
+    "i am so sorry",
+    "strašně se omlouvám",
+    "hrozne se omlouvam",
+    ...genericInvitationTerms,
+  ],
 };
 
 function normalize(text: string) {
@@ -219,8 +291,18 @@ export function detectReplyContext(text: string): ContextDetectionResult {
   const hasClient = hasAny(normalized, clientSignals);
   const hasRepair = hasAny(normalized, repairSignals);
   const hasPressure = hasAny(normalized, pressureSignals);
+  const hasPeer = hasAny(normalized, peerSignals);
+  const hasExtraWork = hasAny(normalized, extraWorkSignals);
+  const hasRepeatedFavor = hasAny(normalized, repeatedFavorSignals);
+  const hasHelpCapacity = hasAny(normalized, helpCapacitySignals);
+  const hasCloseFriend = hasAny(normalized, closeFriendSignals);
+  const hasSocialDm = hasAny(normalized, socialDmSignals);
+  const hasPersonalBoundary = hasAny(normalized, personalBoundarySignals);
+  const hasRedirectTopic = hasAny(normalized, redirectTopicSignals);
+  const hasBuyTime = hasAny(normalized, buyTimeSignals);
 
   if (hasAuthority) reasons.push("authority_signal");
+  if (hasPeer) reasons.push("peer_signal");
   if (hasInvite) reasons.push("invitation_signal");
   if (hasDeadline) reasons.push("deadline_signal");
   if (hasSchoolDeadline) reasons.push("school_deadline_signal");
@@ -229,6 +311,13 @@ export function detectReplyContext(text: string): ContextDetectionResult {
   if (hasClient) reasons.push("client_scope_signal");
   if (hasRepair) reasons.push("repair_signal");
   if (hasPressure) reasons.push("pressure_signal");
+  if (hasExtraWork) reasons.push("extra_work_signal");
+  if (hasRepeatedFavor) reasons.push("repeated_favor_signal");
+  if (hasHelpCapacity) reasons.push("help_capacity_signal");
+  if (hasSocialDm) reasons.push("social_dm_signal");
+  if (hasPersonalBoundary) reasons.push("personal_boundary_signal");
+  if (hasRedirectTopic) reasons.push("redirect_topic_signal");
+  if (hasBuyTime) reasons.push("buy_time_signal");
 
   let domain: DetectorDomain = "general";
   let scenarioFamily: ScenarioFamily = "general";
@@ -263,6 +352,44 @@ export function detectReplyContext(text: string): ContextDetectionResult {
     relationshipSuggestion = "family";
     strategySuggestion = "hard_boundary";
     toneSuggestion = "assertive";
+  } else if (hasPeer && hasExtraWork) {
+    domain = "work";
+    scenarioFamily = "work_extra_work_boundary";
+    relationshipSuggestion = "peer";
+    strategySuggestion = "hard_boundary";
+    channelSuggestion = "work_chat";
+    toneSuggestion = "assertive";
+  } else if (hasRepeatedFavor) {
+    domain = "social";
+    scenarioFamily = "repeated_favors_boundary";
+    relationshipSuggestion = "friend";
+    strategySuggestion = "hard_boundary";
+    toneSuggestion = "assertive";
+  } else if ((hasCloseFriend || hasAny(normalized, ["kamaradka", "kamarádka", "friend"])) && hasHelpCapacity) {
+    domain = "social";
+    scenarioFamily = "friend_help_capacity_decline";
+    relationshipSuggestion = hasCloseFriend ? "close_friend" : "friend";
+    strategySuggestion = "hard_boundary";
+    toneSuggestion = "warm";
+  } else if (hasSocialDm && hasPersonalBoundary) {
+    domain = "public";
+    scenarioFamily = "social_dm_personal_boundary";
+    relationshipSuggestion = "stranger_public";
+    strategySuggestion = "hard_boundary";
+    channelSuggestion = "social_dm";
+    toneSuggestion = "polite";
+  } else if (hasRedirectTopic) {
+    domain = "social";
+    scenarioFamily = "redirect_topic";
+    relationshipSuggestion = "friend";
+    strategySuggestion = "redirect";
+    toneSuggestion = "neutral";
+  } else if (hasBuyTime && !hasDeadline) {
+    domain = "general";
+    scenarioFamily = "buy_time_no_deadline";
+    relationshipSuggestion = "peer";
+    strategySuggestion = "delay";
+    toneSuggestion = "concise";
   } else if (hasRepair) {
     domain = hasAuthority ? "work" : "social";
     scenarioFamily = "repair_after_mistake";
@@ -364,7 +491,21 @@ export function resolveScenarioRoute(
 ): "delay" | "decline" | "boundary" | "repair" | "negotiate" | "clarify" | "redirect" | "exit" {
   if (detected.scenarioFamily === "money_refuse_loan") return "boundary";
   if (
-    ["work_deadline_delay", "school_deadline_extension"].includes(detected.scenarioFamily)
+    [
+      "family_pressure_boundary",
+      "work_extra_work_boundary",
+      "repeated_favors_boundary",
+      "friend_help_capacity_decline",
+      "social_dm_personal_boundary",
+    ].includes(detected.scenarioFamily)
+  ) {
+    return "boundary";
+  }
+  if (detected.scenarioFamily === "redirect_topic") return "redirect";
+  if (
+    ["work_deadline_delay", "school_deadline_extension", "buy_time_no_deadline"].includes(
+      detected.scenarioFamily
+    )
   ) {
     return "delay";
   }
@@ -457,6 +598,14 @@ export function applyQaRewrite(text: string, qa: ReplyQaResult, language: Detect
     return language === "cs"
       ? "Nechci si vymýšlet výmluvu. Řeknu to raději stručně a pravdivě."
       : "I do not want to make up an excuse. I will keep it brief and truthful.";
+  }
+
+  if (qa.mismatchType === "forbidden_terms" || qa.mismatchType === "strategy_and_terms") {
+    if (language === "cs") {
+      return "Tohle teď nechci potvrdit. Potřebuji držet jasnou hranici a říct to stručně bez zbytečného vysvětlování.";
+    }
+
+    return "I do not want to confirm this right now. I need to keep a clear boundary and say it briefly without over-explaining.";
   }
 
   let rewritten = text;
