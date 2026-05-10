@@ -1,32 +1,42 @@
 import { pricingPlans } from "@/lib/pricing";
 
-export function PricingCards() {
+export function PricingCards({ lang = "cs" }: { lang?: "cs" | "en" }) {
+  const ctaLabel = lang === "cs" ? "Vybrat plán" : "Choose plan";
+  const freeCtaLabel = lang === "cs" ? "Vyzkoušet zdarma" : "Try for free";
+
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {pricingPlans.map((plan) => (
         <article
           key={plan.name}
           className={[
-            "rounded-3xl border p-6 shadow-sm transition",
+            "group relative overflow-hidden rounded-[2rem] border p-6 shadow-sm transition duration-300 hover:-translate-y-1",
             plan.highlighted
-              ? "border-black bg-black text-white shadow-xl"
-              : "border-neutral-200 bg-white text-neutral-950",
+              ? "border-[#B8FF4D]/45 bg-[#171816] text-white shadow-2xl shadow-[#B8FF4D]/10"
+              : "border-[#241f18]/10 bg-[#fffdf7]/85 text-[#171816] shadow-[#241f18]/5 hover:border-[#B8FF4D]/40 hover:shadow-xl hover:shadow-[#B8FF4D]/10",
           ].join(" ")}
         >
+          <div
+            aria-hidden="true"
+            className={[
+              "absolute inset-x-6 top-0 h-px",
+              plan.highlighted ? "bg-[#B8FF4D]/70" : "bg-[#b9a9ff]/40",
+            ].join(" ")}
+          />
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-xl font-semibold">{plan.name}</h3>
               <p
                 className={[
                   "mt-2 text-sm leading-6",
-                  plan.highlighted ? "text-neutral-300" : "text-neutral-600",
+                  plan.highlighted ? "text-[#e8e5d9]" : "text-[#645f54]",
                 ].join(" ")}
               >
                 {plan.description}
               </p>
             </div>
             {plan.highlighted ? (
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-black">
+              <span className="rounded-full bg-[#B8FF4D] px-3 py-1 text-xs font-black text-[#171816]">
                 {plan.badge}
               </span>
             ) : null}
@@ -37,7 +47,7 @@ export function PricingCards() {
             <p
               className={[
                 "mt-2 text-sm",
-                plan.highlighted ? "text-neutral-300" : "text-neutral-500",
+                plan.highlighted ? "text-[#d9d5c6]" : "text-[#746d60]",
               ].join(" ")}
             >
               {plan.limit}
@@ -55,14 +65,14 @@ export function PricingCards() {
 
           <button
             className={[
-              "mt-8 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition",
+              "mt-8 w-full rounded-full px-4 py-3 text-sm font-black transition focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/35",
               plan.highlighted
-                ? "bg-white text-black hover:bg-neutral-200"
-                : "bg-neutral-950 text-white hover:bg-neutral-800",
+                ? "bg-[#B8FF4D] text-[#171816] hover:bg-[#d8ff8a]"
+                : "bg-[#171816] text-white hover:-translate-y-0.5 hover:bg-[#2a2d25]",
             ].join(" ")}
             type="button"
           >
-            {plan.name === "Free" ? "Vyzkoušet zdarma" : "Vybrat plán"}
+            {plan.name === "Free" ? freeCtaLabel : ctaLabel}
           </button>
         </article>
       ))}

@@ -3,30 +3,36 @@
 import { trackEvent } from "@/lib/analytics/trackEvent";
 import { creditPacks } from "@/lib/monetization";
 
-export function CreditPacks({ compact = false }: { compact?: boolean }) {
+export function CreditPacks({
+  compact = false,
+  lang = "cs",
+}: {
+  compact?: boolean;
+  lang?: "cs" | "en";
+}) {
   return (
     <div className={compact ? "grid gap-3" : "grid gap-3 md:grid-cols-3"}>
       {creditPacks.map((pack) => (
         <article
           key={pack.id}
-          className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"
+          className="group rounded-[1.5rem] border border-[#241f18]/10 bg-[#fffdf7]/90 p-4 shadow-sm shadow-[#241f18]/5 transition duration-300 hover:-translate-y-1 hover:border-[#B8FF4D]/45 hover:shadow-xl hover:shadow-[#B8FF4D]/10"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-base font-bold text-neutral-950">{pack.label}</h3>
-              <p className="mt-1 text-2xl font-black tracking-tight text-neutral-950">
+              <h3 className="text-base font-bold text-[#171816]">{pack.label}</h3>
+              <p className="mt-1 text-2xl font-black tracking-tight text-[#171816]">
                 {pack.price}
               </p>
             </div>
             {pack.badge ? (
-              <span className="rounded-full bg-neutral-950 px-3 py-1 text-xs font-bold text-white">
+              <span className="rounded-full bg-[#171816] px-3 py-1 text-xs font-bold text-white">
                 {pack.badge}
               </span>
             ) : null}
           </div>
 
-          <p className="mt-3 text-sm leading-6 text-neutral-600">{pack.description}</p>
-          <p className="mt-2 text-sm font-semibold text-neutral-950">
+          <p className="mt-3 text-sm leading-6 text-[#645f54]">{pack.description}</p>
+          <p className="mt-2 text-sm font-semibold text-[#171816]">
             {pack.credits} situace · {pack.validity}
           </p>
 
@@ -39,9 +45,9 @@ export function CreditPacks({ compact = false }: { compact?: boolean }) {
                 credits: pack.credits,
               });
             }}
-            className="mt-4 w-full rounded-xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white hover:bg-neutral-800"
+            className="mt-4 w-full rounded-full bg-[#171816] px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#2a2d25] focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/35"
           >
-            Koupit
+            {lang === "cs" ? "Koupit" : "Buy pack"}
           </button>
         </article>
       ))}

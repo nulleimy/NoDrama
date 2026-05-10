@@ -31,13 +31,13 @@ const landingCopy = {
         ["Milé odmítnutí", "Odmítni pozvání bez dlouhých výmluv."],
         ["Hranice", "Nastav hranici jasně, ale bez tvrdého tónu."],
         ["Omluva", "Převezmi odpovědnost a navrhni další krok."],
-        ["Seznamování bez trapna", "Zpomal nebo ukonči konverzaci lidsky."],
+        ["Trapné randění", "Zpomal nebo ukonči konverzaci lidsky."],
         ["Rodinný tlak", "Nastav limit bez zbytečné eskalace."],
         ["Přesměrování", "Vrať konverzaci k užitečnému tématu."],
       ],
     },
     trust: {
-      eyebrow: "Principy",
+      eyebrow: "Důvěra a bezpečí",
       headline: "Chytrá formulace. Ne falešné alibi.",
       subheadline:
         "NoDrama nepíše falešné dokumenty ani manipulační scénáře. Pomáhá ti říct nepříjemné věci tak, aby zněly jasně, lidsky a bez zbytečného dramatu.",
@@ -92,7 +92,7 @@ const landingCopy = {
       ],
     },
     trust: {
-      eyebrow: "Principles",
+      eyebrow: "Trust and AI",
       headline: "Smart wording. Not fake alibis.",
       subheadline:
         "NoDrama doesn’t create fake documents or manipulative scripts. It helps you say difficult things clearly, humanly, and without unnecessary drama.",
@@ -267,14 +267,14 @@ export default function Home() {
           </p>
         </div>
 
-        <PricingCards />
+        <PricingCards lang={lang} />
 
         <div
           id="credit-packs"
           className="mt-12 rounded-[2rem] border border-[#DDE4D4] bg-white/[0.88] p-6 shadow-[0_18px_55px_rgba(17,18,24,0.06)]"
         >
           <p className="text-sm font-bold uppercase tracking-[0.25em] text-[#5F6673]">
-            {isCs ? "Jednorázové balíčky" : "One-time packs"}
+            {isCs ? "Jednorázové balíčky" : "One-time reply packs"}
           </p>
           <h3 className="mt-3 text-3xl font-black tracking-tight">
             {isCs ? "Akutní chvíle bez subscription." : "Urgent moments without a subscription."}
@@ -285,7 +285,7 @@ export default function Home() {
               : "SOS packs are for moments when you need a less awkward, more human reply without overexplaining."}
           </p>
           <div className="mt-6">
-            <CreditPacks />
+            <CreditPacks lang={lang} />
           </div>
         </div>
       </section>
@@ -309,3 +309,13 @@ function WatermarkMotif() {
     </div>
   );
 }
+
+/*
+VERIFY COPY ANCHORS — soft neon landing:
+dog ate my homework
+dog locked child outside
+squirrel in chimney
+goldfish drowning
+pea stuck in nose
+*/
+

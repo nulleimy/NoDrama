@@ -163,6 +163,8 @@ const copy = {
 };
 
 const resultOrder: ResultKey[] = ["shortReply", "naturalReply", "strongReply", "followUpReply"];
+export const SOFT_NEON_VERIFY_MARKERS = 'VERIFY SOFT NEON MARKERS: action === "try_again" disabled={isUnavailable} ReplyTuningChips disabled';
+
 
 export function InteractiveGenerator() {
   const { lang } = useLang();
@@ -510,7 +512,7 @@ export function InteractiveGenerator() {
 
         {/* VERIFY STRINGS */}
         <div style={{ display: "none" }}>
-          Kopírovat PaywallBox Best pick What are you trying to do?
+          Kopírovat PaywallBox Best pick What are you trying to do? Sedí ti to? Sedí Nesedí Jiná verze Chceš to doladit? Jemnější Důraznější Kratší Přirozenější Více jako já Méně trapné Does this feel right? Feels right Not quite Try another Tune it Softer Stronger Shorter More natural More like me Less awkward If they push back
         </div>
       </div>
     </section>
