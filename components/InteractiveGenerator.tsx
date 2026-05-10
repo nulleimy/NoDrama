@@ -221,15 +221,23 @@ export function InteractiveGenerator() {
       });
 
       setSelectionSource((current) => {
+        let changed = false;
         const next = { ...current };
+
         (Object.keys(suggestions) as SelectorGroup[]).forEach((group) => {
           const suggested = suggestions[group];
           if (!suggested || current[group] === "manual") return;
-          if (publicGeneratorTaxonomyControls[group].some((option) => option.id === suggested)) {
+
+          if (
+            publicGeneratorTaxonomyControls[group].some((option) => option.id === suggested) &&
+            next[group] !== "auto"
+          ) {
             next[group] = "auto";
+            changed = true;
           }
         });
-        return next;
+
+        return changed ? next : current;
       });
     }, 320);
 
