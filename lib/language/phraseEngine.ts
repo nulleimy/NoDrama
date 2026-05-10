@@ -143,10 +143,10 @@ export function generatePhraseEngineReply(
   };
 
   const output = {
-    shortReply: applyQaRewrite(rawOutput.shortReply, qaByVariant.shortReply, detectedContext.language),
-    naturalReply: applyQaRewrite(rawOutput.naturalReply, qaByVariant.naturalReply, detectedContext.language),
-    strongReply: applyQaRewrite(rawOutput.strongReply, qaByVariant.strongReply, detectedContext.language),
-    followUpReply: applyQaRewrite(rawOutput.followUpReply, qaByVariant.followUpReply, detectedContext.language),
+    shortReply: applyQaRewrite(rawOutput.shortReply, qaByVariant.shortReply, language),
+    naturalReply: applyQaRewrite(rawOutput.naturalReply, qaByVariant.naturalReply, language),
+    strongReply: applyQaRewrite(rawOutput.strongReply, qaByVariant.strongReply, language),
+    followUpReply: applyQaRewrite(rawOutput.followUpReply, qaByVariant.followUpReply, language),
   };
 
   return {

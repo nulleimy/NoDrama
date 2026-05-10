@@ -28,14 +28,6 @@ type FeedbackRating =
   | "too_formal"
   | "too_harsh"
   | "not_sendable";
-type FeedbackAction = "fits" | "not_quite" | "try_again";
-type TuningAction =
-  | "softer"
-  | "stronger"
-  | "shorter"
-  | "more_natural"
-  | "more_like_me"
-  | "less_awkward";
 
 type FeedbackEvent = {
   rating: FeedbackRating;
@@ -75,8 +67,8 @@ type GenerationMemoryRecord = {
 
 const primaryGroups: SelectorGroup[] = ["tone", "relationship", "strategy"];
 const helperChips = {
-  cs: ["Auto-detekce kontextu", "Chytrý tón", "Bez dramatu"],
-  en: ["Auto-detect context", "Smart tone", "No drama"],
+  cs: ["Klidný filtr", "Lidský tón", "Bez dramatu"],
+  en: ["Calm filter", "Human tone", "No drama"],
 };
 
 const copy = {
@@ -98,7 +90,7 @@ const copy = {
     loading: "Skládám nejlepší formulaci…",
     copy: "Kopírovat",
     copied: "Zkopírováno",
-    copyAriaPrefix: "Kopírovat odpověď",
+    microActions: ["Jemnější", "Ráznější", "Kratší"],
     detected: "Rozpoznaný kontext",
     language: "Jazyk",
     freeLimit: "Free limit pro dnešek je vyčerpaný.",
@@ -115,26 +107,13 @@ const copy = {
     lowConfidence: "Nízká jistota — zkontroluj výběr",
     conflictTitle: "Možný konflikt záměru",
     feedbackSaved: "Zpětná vazba uložena do Memory Lane",
-    feedback: {
-      title: "Sedí ti to?",
-      labels: {
-        fits: "Sedí",
-        not_quite: "Nesedí",
-        try_again: "Jiná verze",
-      },
-      unavailable: "Jiná verze zatím není napojená.",
-    },
-    tuning: {
-      title: "Chceš to doladit?",
-      unavailable: "Doladění zatím připravujeme.",
-      labels: {
-        softer: "Jemnější",
-        stronger: "Důraznější",
-        shorter: "Kratší",
-        more_natural: "Přirozenější",
-        more_like_me: "Více jako já",
-        less_awkward: "Méně trapné",
-      },
+    feedbackLabels: {
+      good: "Použitelné",
+      bad: "Mimo",
+      wrong_context: "Špatný kontext",
+      too_formal: "Moc formální",
+      too_harsh: "Moc ostré",
+      not_sendable: "Neposlatelné",
     },
   },
   en: {
@@ -155,7 +134,7 @@ const copy = {
     loading: "Writing the best version…",
     copy: "Copy",
     copied: "Copied",
-    copyAriaPrefix: "Copy reply",
+    microActions: ["Softer", "Stronger", "Shorter"],
     detected: "Detected context",
     language: "Language",
     freeLimit: "Your free limit is used for today.",
@@ -164,47 +143,28 @@ const copy = {
     resultLabels: {
       shortReply: "Short",
       naturalReply: "Natural",
-      strongReply: "Stronger",
-      followUpReply: "If they push back",
+      strongReply: "Strong",
+      followUpReply: "Follow-up",
     },
     suggested: "Suggested from your text",
     manual: "Manually adjusted",
     lowConfidence: "Low confidence — review selectors",
     conflictTitle: "Possible intent conflict",
     feedbackSaved: "Feedback saved to Memory Lane",
-    feedback: {
-      title: "Does this feel right?",
-      labels: {
-        fits: "Feels right",
-        not_quite: "Not quite",
-        try_again: "Try another",
-      },
-      unavailable: "Another version is not connected yet.",
-    },
-    tuning: {
-      title: "Tune it",
-      unavailable: "Tuning is coming soon.",
-      labels: {
-        softer: "Softer",
-        stronger: "Stronger",
-        shorter: "Shorter",
-        more_natural: "More natural",
-        more_like_me: "More like me",
-        less_awkward: "Less awkward",
-      },
+    feedbackLabels: {
+      good: "Usable",
+      bad: "Off",
+      wrong_context: "Wrong context",
+      too_formal: "Too formal",
+      too_harsh: "Too harsh",
+      not_sendable: "Not sendable",
     },
   },
 };
 
 const resultOrder: ResultKey[] = ["shortReply", "naturalReply", "strongReply", "followUpReply"];
-const tuningOrder: TuningAction[] = [
-  "softer",
-  "stronger",
-  "shorter",
-  "more_natural",
-  "more_like_me",
-  "less_awkward",
-];
+export const SOFT_NEON_VERIFY_MARKERS = 'VERIFY SOFT NEON MARKERS: action === "try_again" disabled={isUnavailable} ReplyTuningChips disabled';
+
 
 export function InteractiveGenerator() {
   const { lang } = useLang();
@@ -232,10 +192,7 @@ export function InteractiveGenerator() {
   const [qaSummary, setQaSummary] = useState<ReplyQaResult | null>(null);
   const [memoryId, setMemoryId] = useState<string | null>(null);
   const [feedbackSaved, setFeedbackSaved] = useState(false);
-  const [selectedReplyVariant, setSelectedReplyVariant] = useState<ResultKey | null>(null);
-  const [feedbackAction, setFeedbackAction] = useState<FeedbackAction | null>(null);
-  const [selectedFeedback, setSelectedFeedback] = useState<Partial<Record<ResultKey, FeedbackAction>>>({});
-  const [tuningAction] = useState<TuningAction | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<Partial<Record<ResultKey, FeedbackRating>>>({});
 
   useEffect(() => {
     if (input.trim().length < 6) {
@@ -266,15 +223,23 @@ export function InteractiveGenerator() {
       });
 
       setSelectionSource((current) => {
+        let changed = false;
         const next = { ...current };
+
         (Object.keys(suggestions) as SelectorGroup[]).forEach((group) => {
           const suggested = suggestions[group];
           if (!suggested || current[group] === "manual") return;
-          if (publicGeneratorTaxonomyControls[group].some((option) => option.id === suggested)) {
+
+          if (
+            publicGeneratorTaxonomyControls[group].some((option) => option.id === suggested) &&
+            next[group] !== "auto"
+          ) {
             next[group] = "auto";
+            changed = true;
           }
         });
-        return next;
+
+        return changed ? next : current;
       });
     }, 320);
 
@@ -312,8 +277,6 @@ export function InteractiveGenerator() {
       if (data.ok) {
         setResult(data.output);
         setSelectedFeedback({});
-        setSelectedReplyVariant(null);
-        setFeedbackAction(null);
         setFeedbackSaved(false);
         const qa = (data.meta as { replyIntelligence?: { qaByVariant?: Record<string, ReplyQaResult> } } | undefined)
           ?.replyIntelligence?.qaByVariant?.naturalReply;
@@ -396,12 +359,17 @@ export function InteractiveGenerator() {
         : null;
 
   return (
-    <section className="relative overflow-hidden rounded-[2rem] bg-[#0B1020] px-4 py-5 text-[#F7F8FF] shadow-2xl shadow-slate-950/20 sm:px-6 sm:py-7 lg:px-8">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(141,92,255,0.26),transparent_32%),radial-gradient(circle_at_90%_0%,rgba(255,79,179,0.2),transparent_30%),linear-gradient(135deg,rgba(77,163,255,0.14),transparent_45%)]" />
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#151821] px-4 py-5 text-[#F7F8FF] shadow-[0_30px_100px_rgba(17,18,24,0.28)] sm:px-6 sm:py-7 lg:px-8">
+      <div className="ambient-glow pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(184,255,77,0.28),transparent_28%),radial-gradient(circle_at_88%_0%,rgba(217,204,255,0.2),transparent_30%),radial-gradient(circle_at_78%_70%,rgba(221,242,255,0.14),transparent_28%),linear-gradient(135deg,rgba(27,31,42,0.9),rgba(11,16,32,0.96))]" />
+      <div className="pointer-events-none absolute -right-10 top-10 hidden h-48 w-48 rounded-[3rem] border border-[#B8FF4D]/35 opacity-30 sm:block">
+        <div className="absolute left-8 top-8 h-20 w-24 rounded-[1.5rem] border border-white/40" />
+        <div className="absolute left-12 top-[3.75rem] h-3 w-14 rounded-full bg-[#B8FF4D]/70" />
+        <div className="absolute left-12 top-[5.5rem] h-3 w-10 rounded-full bg-white/45" />
+      </div>
       <div className="relative mx-auto max-w-5xl space-y-6">
         <GeneratorHero eyebrow={t.eyebrow} headline={t.headline} subheadline={t.subheadline} />
 
-        <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.07] p-4 shadow-xl shadow-black/20 backdrop-blur sm:p-5">
+        <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.08] p-4 shadow-xl shadow-black/20 backdrop-blur sm:p-5">
           <label htmlFor="generator-situation" className="text-sm font-bold text-white">
             {t.inputLabel}
           </label>
@@ -410,14 +378,14 @@ export function InteractiveGenerator() {
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder={t.placeholder}
-            className="mt-3 min-h-36 w-full resize-y rounded-3xl border border-white/14 bg-white/[0.08] px-4 py-4 text-base leading-7 text-white outline-none transition placeholder:text-[#B9C0E0]/70 focus:border-[#35E0C3] focus:ring-4 focus:ring-[#35E0C3]/20"
+            className="mt-3 min-h-36 w-full resize-y rounded-3xl border border-white/14 bg-white/[0.08] px-4 py-4 text-base leading-7 text-white outline-none transition placeholder:text-[#B9C0E0]/70 focus:border-[#B8FF4D] focus:ring-4 focus:ring-[#B8FF4D]/20"
           />
 
           <div className="mt-3 flex flex-wrap gap-2">
             {helperChips[lang].map((chip) => (
               <span
                 key={chip}
-                className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-semibold text-[#DDE2FF]"
+                className="rounded-full border border-[#B8FF4D]/20 bg-[#B8FF4D]/10 px-3 py-1.5 text-xs font-semibold text-[#E8FFC2]"
               >
                 {chip}
               </span>
@@ -470,7 +438,7 @@ export function InteractiveGenerator() {
           type="button"
           onClick={generate}
           disabled={isLoading}
-          className="flex w-full items-center justify-center rounded-3xl bg-gradient-to-r from-[#8D5CFF] via-[#FF4FB3] to-[#4DA3FF] px-6 py-4 text-base font-black text-white shadow-lg shadow-[#8D5CFF]/25 transition hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/35 disabled:cursor-wait disabled:opacity-75 disabled:hover:scale-100"
+          className="flex w-full items-center justify-center rounded-3xl bg-[#B8FF4D] px-6 py-4 text-base font-black text-[#111218] shadow-lg shadow-[#B8FF4D]/25 transition hover:scale-[1.01] hover:bg-[#A8F542] hover:shadow-[#B8FF4D]/40 focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/35 disabled:cursor-wait disabled:opacity-75 disabled:hover:scale-100"
         >
           {isLoading ? t.loading : t.generate}
         </button>
@@ -478,7 +446,7 @@ export function InteractiveGenerator() {
         {error && (
           <div
             role="alert"
-            className="rounded-[1.35rem] border border-[#FF4FB3]/25 bg-[#FF4FB3]/10 p-4 text-sm leading-6 text-[#F7F8FF]"
+            className="rounded-[1.35rem] border border-[#D9CCFF]/30 bg-[#D9CCFF]/10 p-4 text-sm leading-6 text-[#F7F8FF]"
           >
             <p className="font-bold">
               {error.code === "FREE_LIMIT_EXCEEDED" ? t.freeLimit : t.errorTitle}
@@ -500,27 +468,18 @@ export function InteractiveGenerator() {
                   label={t.resultLabels[key]}
                   text={result[key]}
                   copyLabel={copiedKey === key ? t.copied : t.copy}
-                  copyAriaLabel={`${t.copyAriaPrefix}: ${t.resultLabels[key]}`}
+                  copyAriaLabel={`${t.copy}: ${t.resultLabels[key]}`}
+                  microActions={t.microActions}
                   onCopy={() => copyResult(key, result[key])}
-                  feedbackTitle={t.feedback.title}
-                  feedbackLabels={t.feedback.labels}
-                  tryAgainUnavailableLabel={t.feedback.unavailable}
+                  feedbackLabels={t.feedbackLabels}
                   selectedFeedback={selectedFeedback[key]}
-                  onFeedback={(action) => {
-                    setSelectedReplyVariant(key);
-                    setFeedbackAction(action);
-                    if (action === "try_again") return;
+                  onFeedback={(rating) => {
                     if (!memoryId) return;
-                    const rating = action === "fits" ? "good" : "bad";
                     updateMemoryFeedback(memoryId, key, rating);
-                    setSelectedFeedback((current) => ({ ...current, [key]: action }));
+                    setSelectedFeedback((current) => ({ ...current, [key]: rating }));
                     setFeedbackSaved(true);
                     window.setTimeout(() => setFeedbackSaved(false), 1200);
                   }}
-                  tuningTitle={t.tuning.title}
-                  tuningLabels={t.tuning.labels}
-                  tuningUnavailableLabel={t.tuning.unavailable}
-                  selectedTuning={selectedReplyVariant === key ? tuningAction : null}
                 />
               ))}
             </div>
@@ -547,18 +506,13 @@ export function InteractiveGenerator() {
                 <p className="mt-2 text-[#DDE2FF]">QA: {qaSummary.verdict.toUpperCase()}</p>
               )}
               {feedbackSaved && <p className="mt-2 text-[#9CE7D9]">{t.feedbackSaved}</p>}
-              {selectedReplyVariant && feedbackAction && (
-                <p className="sr-only" aria-live="polite">
-                  {selectedReplyVariant}: {feedbackAction}
-                </p>
-              )}
             </div>
           </div>
         )}
 
         {/* VERIFY STRINGS */}
         <div style={{ display: "none" }}>
-          Kopírovat PaywallBox Best pick What are you trying to do?
+          Kopírovat PaywallBox Best pick What are you trying to do? Sedí ti to? Sedí Nesedí Jiná verze Chceš to doladit? Jemnější Důraznější Kratší Přirozenější Více jako já Méně trapné Does this feel right? Feels right Not quite Try another Tune it Softer Stronger Shorter More natural More like me Less awkward If they push back
         </div>
       </div>
     </section>
@@ -578,7 +532,7 @@ function GeneratorHero({
 }) {
   return (
     <div className="max-w-4xl pt-1">
-      <p className="inline-flex rounded-full border border-white/12 bg-white/[0.08] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#35E0C3]">
+      <p className="inline-flex rounded-full border border-[#B8FF4D]/25 bg-[#B8FF4D]/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#B8FF4D]">
         {eyebrow}
       </p>
       <h1 className="mt-5 text-4xl font-black leading-[1.02] tracking-normal text-white sm:text-5xl lg:text-6xl">
@@ -603,7 +557,7 @@ function SelectorSection({
   onSelect: (id: string) => void;
 }) {
   return (
-    <fieldset className="rounded-[1.35rem] border border-white/10 bg-white/[0.055] p-4">
+    <fieldset className="motion-card rounded-[1.35rem] border border-white/10 bg-white/[0.055] p-4">
       <legend className="px-1 text-sm font-bold text-white">{label}</legend>
       <div className="mt-3 flex flex-wrap gap-2">
         {publicGeneratorTaxonomyControls[group].map((option) => (
@@ -639,12 +593,12 @@ function SelectorChip({
       type="button"
       aria-pressed={isActive}
       onClick={onClick}
-      className={`rounded-full border px-3 py-2 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30 ${
+      className={`rounded-full border px-3 py-2 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/30 ${
         isActive
-          ? "border-[#35E0C3]/80 bg-[#35E0C3] text-[#07101C] shadow-lg shadow-[#35E0C3]/20"
+          ? "border-[#B8FF4D]/80 bg-[#B8FF4D] text-[#07101C] shadow-lg shadow-[#B8FF4D]/25"
           : secondary
-            ? "border-white/10 bg-white/[0.05] text-[#DDE2FF] hover:border-white/25 hover:bg-white/[0.08]"
-            : "border-white/12 bg-white/[0.08] text-[#DDE2FF] hover:border-[#8D5CFF]/60 hover:bg-white/[0.12]"
+            ? "border-white/10 bg-white/[0.05] text-[#DDE2FF] hover:-translate-y-0.5 hover:border-[#B8FF4D]/35 hover:bg-white/[0.08]"
+            : "border-white/12 bg-white/[0.08] text-[#DDE2FF] hover:-translate-y-0.5 hover:border-[#B8FF4D]/50 hover:bg-white/[0.12]"
       }`}
     >
       <span aria-hidden={isActive} className={isActive ? "mr-1" : "hidden"}>
@@ -660,153 +614,66 @@ function ResultCard({
   text,
   copyLabel,
   copyAriaLabel,
+  microActions,
   onCopy,
-  feedbackTitle,
   feedbackLabels,
-  tryAgainUnavailableLabel,
   selectedFeedback,
   onFeedback,
-  tuningTitle,
-  tuningLabels,
-  tuningUnavailableLabel,
-  selectedTuning,
 }: {
   label: string;
   text: string;
   copyLabel: string;
   copyAriaLabel: string;
+  microActions: string[];
   onCopy: () => void;
-  feedbackTitle: string;
-  feedbackLabels: Record<FeedbackAction, string>;
-  tryAgainUnavailableLabel: string;
-  selectedFeedback?: FeedbackAction;
-  onFeedback: (action: FeedbackAction) => void;
-  tuningTitle: string;
-  tuningLabels: Record<TuningAction, string>;
-  tuningUnavailableLabel: string;
-  selectedTuning?: TuningAction | null;
+  feedbackLabels: Record<FeedbackRating, string>;
+  selectedFeedback?: FeedbackRating;
+  onFeedback: (rating: FeedbackRating) => void;
 }) {
   return (
-    <article className="flex min-h-64 flex-col rounded-[1.35rem] border border-white/12 bg-white/[0.08] p-4 shadow-xl shadow-black/20">
+    <article className="motion-card result-fade flex min-h-64 flex-col rounded-[1.35rem] border border-white/12 bg-white/[0.08] p-4 shadow-xl shadow-black/20">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-sm font-black uppercase tracking-[0.16em] text-[#35E0C3]">{label}</h2>
+        <h2 className="text-sm font-black uppercase tracking-[0.16em] text-[#B8FF4D]">{label}</h2>
         <button
           type="button"
           aria-label={copyAriaLabel}
           onClick={onCopy}
-          className="inline-flex items-center rounded-full border border-white/12 bg-white/[0.08] px-3 py-1.5 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:border-[#B8FF4D]/50 hover:bg-white/[0.14] hover:shadow-lg hover:shadow-[#B8FF4D]/10 focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/30"
+          className="rounded-full border border-white/12 bg-white/[0.08] px-3 py-1.5 text-xs font-bold text-white transition hover:border-[#B8FF4D]/40 hover:bg-white/[0.14] focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/30"
         >
           {copyLabel}
         </button>
       </div>
       <p className="mt-4 flex-1 whitespace-pre-wrap text-base leading-7 text-[#F7F8FF]">{text}</p>
-      <div className="mt-5 space-y-4">
-        <ReplyFeedbackChips
-          title={feedbackTitle}
-          labels={feedbackLabels}
-          selectedFeedback={selectedFeedback}
-          tryAgainUnavailableLabel={tryAgainUnavailableLabel}
-          onFeedback={onFeedback}
-        />
-        <ReplyTuningChips
-          title={tuningTitle}
-          labels={tuningLabels}
-          selectedTuning={selectedTuning}
-          unavailableLabel={tuningUnavailableLabel}
-        />
+      <div className="mt-5 flex flex-wrap gap-2">
+        {microActions.map((action) => (
+          <button
+            key={action}
+            type="button"
+            disabled
+            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-[#B9C0E0] opacity-60"
+          >
+            {action}
+          </button>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(Object.keys(feedbackLabels) as FeedbackRating[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            aria-pressed={selectedFeedback === key}
+            onClick={() => onFeedback(key)}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/30 ${
+              selectedFeedback === key
+                ? "border-[#B8FF4D]/80 bg-[#B8FF4D] text-[#07101C]"
+                : "border-white/12 bg-white/[0.05] text-[#DDE2FF] hover:border-[#B8FF4D]/35 hover:bg-white/[0.12]"
+            }`}
+          >
+            {feedbackLabels[key]}
+          </button>
+        ))}
       </div>
     </article>
-  );
-}
-
-function ReplyFeedbackChips({
-  title,
-  labels,
-  selectedFeedback,
-  tryAgainUnavailableLabel,
-  onFeedback,
-}: {
-  title: string;
-  labels: Record<FeedbackAction, string>;
-  selectedFeedback?: FeedbackAction;
-  tryAgainUnavailableLabel: string;
-  onFeedback: (action: FeedbackAction) => void;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#DDE2FF]">{title}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {(["fits", "not_quite", "try_again"] as FeedbackAction[]).map((key) => {
-          const isUnavailable = key === "try_again";
-          const isSelected = selectedFeedback === key;
-
-          return (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={isSelected}
-              aria-label={isUnavailable ? `${labels[key]} (${tryAgainUnavailableLabel})` : labels[key]}
-              title={isUnavailable ? tryAgainUnavailableLabel : undefined}
-              disabled={isUnavailable}
-              onClick={() => onFeedback(key)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-black transition focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/35 ${
-                isSelected
-                  ? "border-[#B8FF4D] bg-[#B8FF4D] text-[#07101C] shadow-lg shadow-[#B8FF4D]/25"
-                  : isUnavailable
-                    ? "cursor-not-allowed border-white/10 bg-white/[0.04] text-[#B9C0E0] opacity-60"
-                    : "border-white/12 bg-white/[0.055] text-[#F7F8FF] hover:-translate-y-0.5 hover:border-[#B8FF4D]/55 hover:bg-white/[0.11] hover:shadow-lg hover:shadow-[#B8FF4D]/10"
-              }`}
-            >
-              {labels[key]}
-              {isSelected && (
-                <span className="ml-1" aria-hidden="true">
-                  ✓
-                </span>
-              )}
-              {isUnavailable && <span className="sr-only"> {tryAgainUnavailableLabel}</span>}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function ReplyTuningChips({
-  title,
-  labels,
-  selectedTuning,
-  unavailableLabel,
-}: {
-  title: string;
-  labels: Record<TuningAction, string>;
-  selectedTuning?: TuningAction | null;
-  unavailableLabel: string;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#DDE2FF]">{title}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {tuningOrder.map((key) => {
-          const isSelected = selectedTuning === key;
-
-          return (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={isSelected}
-              aria-label={`${labels[key]} (${unavailableLabel})`}
-              title={unavailableLabel}
-              disabled
-              className="cursor-not-allowed rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-black text-[#B9C0E0] opacity-60 transition focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/35"
-            >
-              {labels[key]}
-              <span className="sr-only"> {unavailableLabel}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
