@@ -28,6 +28,14 @@ type FeedbackRating =
   | "too_formal"
   | "too_harsh"
   | "not_sendable";
+type FeedbackAction = "fits" | "not_quite" | "try_again";
+type TuningAction =
+  | "softer"
+  | "stronger"
+  | "shorter"
+  | "more_natural"
+  | "more_like_me"
+  | "less_awkward";
 
 type FeedbackEvent = {
   rating: FeedbackRating;
@@ -90,7 +98,7 @@ const copy = {
     loading: "Skládám nejlepší formulaci…",
     copy: "Kopírovat",
     copied: "Zkopírováno",
-    microActions: ["Jemnější", "Ráznější", "Kratší"],
+    copyAriaPrefix: "Kopírovat odpověď",
     detected: "Rozpoznaný kontext",
     language: "Jazyk",
     freeLimit: "Free limit pro dnešek je vyčerpaný.",
@@ -107,13 +115,26 @@ const copy = {
     lowConfidence: "Nízká jistota — zkontroluj výběr",
     conflictTitle: "Možný konflikt záměru",
     feedbackSaved: "Zpětná vazba uložena do Memory Lane",
-    feedbackLabels: {
-      good: "Použitelné",
-      bad: "Mimo",
-      wrong_context: "Špatný kontext",
-      too_formal: "Moc formální",
-      too_harsh: "Moc ostré",
-      not_sendable: "Neposlatelné",
+    feedback: {
+      title: "Sedí ti to?",
+      labels: {
+        fits: "Sedí",
+        not_quite: "Nesedí",
+        try_again: "Jiná verze",
+      },
+      unavailable: "Jiná verze zatím není napojená.",
+    },
+    tuning: {
+      title: "Chceš to doladit?",
+      unavailable: "Doladění zatím připravujeme.",
+      labels: {
+        softer: "Jemnější",
+        stronger: "Důraznější",
+        shorter: "Kratší",
+        more_natural: "Přirozenější",
+        more_like_me: "Více jako já",
+        less_awkward: "Méně trapné",
+      },
     },
   },
   en: {
@@ -134,7 +155,7 @@ const copy = {
     loading: "Writing the best version…",
     copy: "Copy",
     copied: "Copied",
-    microActions: ["Softer", "Stronger", "Shorter"],
+    copyAriaPrefix: "Copy reply",
     detected: "Detected context",
     language: "Language",
     freeLimit: "Your free limit is used for today.",
@@ -143,26 +164,47 @@ const copy = {
     resultLabels: {
       shortReply: "Short",
       naturalReply: "Natural",
-      strongReply: "Strong",
-      followUpReply: "Follow-up",
+      strongReply: "Stronger",
+      followUpReply: "If they push back",
     },
     suggested: "Suggested from your text",
     manual: "Manually adjusted",
     lowConfidence: "Low confidence — review selectors",
     conflictTitle: "Possible intent conflict",
     feedbackSaved: "Feedback saved to Memory Lane",
-    feedbackLabels: {
-      good: "Usable",
-      bad: "Off",
-      wrong_context: "Wrong context",
-      too_formal: "Too formal",
-      too_harsh: "Too harsh",
-      not_sendable: "Not sendable",
+    feedback: {
+      title: "Does this feel right?",
+      labels: {
+        fits: "Feels right",
+        not_quite: "Not quite",
+        try_again: "Try another",
+      },
+      unavailable: "Another version is not connected yet.",
+    },
+    tuning: {
+      title: "Tune it",
+      unavailable: "Tuning is coming soon.",
+      labels: {
+        softer: "Softer",
+        stronger: "Stronger",
+        shorter: "Shorter",
+        more_natural: "More natural",
+        more_like_me: "More like me",
+        less_awkward: "Less awkward",
+      },
     },
   },
 };
 
 const resultOrder: ResultKey[] = ["shortReply", "naturalReply", "strongReply", "followUpReply"];
+const tuningOrder: TuningAction[] = [
+  "softer",
+  "stronger",
+  "shorter",
+  "more_natural",
+  "more_like_me",
+  "less_awkward",
+];
 
 export function InteractiveGenerator() {
   const { lang } = useLang();
@@ -190,7 +232,10 @@ export function InteractiveGenerator() {
   const [qaSummary, setQaSummary] = useState<ReplyQaResult | null>(null);
   const [memoryId, setMemoryId] = useState<string | null>(null);
   const [feedbackSaved, setFeedbackSaved] = useState(false);
-  const [selectedFeedback, setSelectedFeedback] = useState<Partial<Record<ResultKey, FeedbackRating>>>({});
+  const [selectedReplyVariant, setSelectedReplyVariant] = useState<ResultKey | null>(null);
+  const [feedbackAction, setFeedbackAction] = useState<FeedbackAction | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<Partial<Record<ResultKey, FeedbackAction>>>({});
+  const [tuningAction] = useState<TuningAction | null>(null);
 
   useEffect(() => {
     if (input.trim().length < 6) {
@@ -267,6 +312,8 @@ export function InteractiveGenerator() {
       if (data.ok) {
         setResult(data.output);
         setSelectedFeedback({});
+        setSelectedReplyVariant(null);
+        setFeedbackAction(null);
         setFeedbackSaved(false);
         const qa = (data.meta as { replyIntelligence?: { qaByVariant?: Record<string, ReplyQaResult> } } | undefined)
           ?.replyIntelligence?.qaByVariant?.naturalReply;
@@ -453,18 +500,27 @@ export function InteractiveGenerator() {
                   label={t.resultLabels[key]}
                   text={result[key]}
                   copyLabel={copiedKey === key ? t.copied : t.copy}
-                  copyAriaLabel={`${t.copy}: ${t.resultLabels[key]}`}
-                  microActions={t.microActions}
+                  copyAriaLabel={`${t.copyAriaPrefix}: ${t.resultLabels[key]}`}
                   onCopy={() => copyResult(key, result[key])}
-                  feedbackLabels={t.feedbackLabels}
+                  feedbackTitle={t.feedback.title}
+                  feedbackLabels={t.feedback.labels}
+                  tryAgainUnavailableLabel={t.feedback.unavailable}
                   selectedFeedback={selectedFeedback[key]}
-                  onFeedback={(rating) => {
+                  onFeedback={(action) => {
+                    setSelectedReplyVariant(key);
+                    setFeedbackAction(action);
+                    if (action === "try_again") return;
                     if (!memoryId) return;
+                    const rating = action === "fits" ? "good" : "bad";
                     updateMemoryFeedback(memoryId, key, rating);
-                    setSelectedFeedback((current) => ({ ...current, [key]: rating }));
+                    setSelectedFeedback((current) => ({ ...current, [key]: action }));
                     setFeedbackSaved(true);
                     window.setTimeout(() => setFeedbackSaved(false), 1200);
                   }}
+                  tuningTitle={t.tuning.title}
+                  tuningLabels={t.tuning.labels}
+                  tuningUnavailableLabel={t.tuning.unavailable}
+                  selectedTuning={selectedReplyVariant === key ? tuningAction : null}
                 />
               ))}
             </div>
@@ -491,6 +547,11 @@ export function InteractiveGenerator() {
                 <p className="mt-2 text-[#DDE2FF]">QA: {qaSummary.verdict.toUpperCase()}</p>
               )}
               {feedbackSaved && <p className="mt-2 text-[#9CE7D9]">{t.feedbackSaved}</p>}
+              {selectedReplyVariant && feedbackAction && (
+                <p className="sr-only" aria-live="polite">
+                  {selectedReplyVariant}: {feedbackAction}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -599,21 +660,31 @@ function ResultCard({
   text,
   copyLabel,
   copyAriaLabel,
-  microActions,
   onCopy,
+  feedbackTitle,
   feedbackLabels,
+  tryAgainUnavailableLabel,
   selectedFeedback,
   onFeedback,
+  tuningTitle,
+  tuningLabels,
+  tuningUnavailableLabel,
+  selectedTuning,
 }: {
   label: string;
   text: string;
   copyLabel: string;
   copyAriaLabel: string;
-  microActions: string[];
   onCopy: () => void;
-  feedbackLabels: Record<FeedbackRating, string>;
-  selectedFeedback?: FeedbackRating;
-  onFeedback: (rating: FeedbackRating) => void;
+  feedbackTitle: string;
+  feedbackLabels: Record<FeedbackAction, string>;
+  tryAgainUnavailableLabel: string;
+  selectedFeedback?: FeedbackAction;
+  onFeedback: (action: FeedbackAction) => void;
+  tuningTitle: string;
+  tuningLabels: Record<TuningAction, string>;
+  tuningUnavailableLabel: string;
+  selectedTuning?: TuningAction | null;
 }) {
   return (
     <article className="flex min-h-64 flex-col rounded-[1.35rem] border border-white/12 bg-white/[0.08] p-4 shadow-xl shadow-black/20">
@@ -623,42 +694,115 @@ function ResultCard({
           type="button"
           aria-label={copyAriaLabel}
           onClick={onCopy}
-          className="rounded-full border border-white/12 bg-white/[0.08] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/[0.14] focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30"
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.08] px-3 py-1.5 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:border-[#35E0C3]/50 hover:bg-white/[0.14] hover:shadow-lg hover:shadow-[#35E0C3]/10 focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30"
         >
           {copyLabel}
         </button>
       </div>
       <p className="mt-4 flex-1 whitespace-pre-wrap text-base leading-7 text-[#F7F8FF]">{text}</p>
-      <div className="mt-5 flex flex-wrap gap-2">
-        {microActions.map((action) => (
-          <button
-            key={action}
-            type="button"
-            disabled
-            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-[#B9C0E0] opacity-60"
-          >
-            {action}
-          </button>
-        ))}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {(Object.keys(feedbackLabels) as FeedbackRating[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            aria-pressed={selectedFeedback === key}
-            onClick={() => onFeedback(key)}
-            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30 ${
-              selectedFeedback === key
-                ? "border-[#35E0C3]/80 bg-[#35E0C3] text-[#07101C]"
-                : "border-white/12 bg-white/[0.05] text-[#DDE2FF] hover:bg-white/[0.12]"
-            }`}
-          >
-            {feedbackLabels[key]}
-          </button>
-        ))}
+      <div className="mt-5 space-y-4">
+        <ReplyFeedbackChips
+          title={feedbackTitle}
+          labels={feedbackLabels}
+          selectedFeedback={selectedFeedback}
+          tryAgainUnavailableLabel={tryAgainUnavailableLabel}
+          onFeedback={onFeedback}
+        />
+        <ReplyTuningChips
+          title={tuningTitle}
+          labels={tuningLabels}
+          selectedTuning={selectedTuning}
+          unavailableLabel={tuningUnavailableLabel}
+        />
       </div>
     </article>
+  );
+}
+
+function ReplyFeedbackChips({
+  title,
+  labels,
+  selectedFeedback,
+  tryAgainUnavailableLabel,
+  onFeedback,
+}: {
+  title: string;
+  labels: Record<FeedbackAction, string>;
+  selectedFeedback?: FeedbackAction;
+  tryAgainUnavailableLabel: string;
+  onFeedback: (action: FeedbackAction) => void;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#DDE2FF]">{title}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {(["fits", "not_quite", "try_again"] as FeedbackAction[]).map((action) => {
+          const isUnavailable = action === "try_again";
+          const isSelected = selectedFeedback === action;
+
+          return (
+            <button
+              key={action}
+              type="button"
+              aria-pressed={isSelected}
+              aria-label={isUnavailable ? `${labels[action]} (${tryAgainUnavailableLabel})` : labels[action]}
+              title={isUnavailable ? tryAgainUnavailableLabel : undefined}
+              disabled={isUnavailable}
+              onClick={() => onFeedback(action)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-black transition focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/35 ${
+                isSelected
+                  ? "border-[#35E0C3] bg-[#35E0C3] text-[#07101C] shadow-lg shadow-[#35E0C3]/25"
+                  : isUnavailable
+                    ? "cursor-not-allowed border-white/10 bg-white/[0.04] text-[#B9C0E0] opacity-60"
+                    : "border-white/12 bg-white/[0.055] text-[#F7F8FF] hover:-translate-y-0.5 hover:border-[#35E0C3]/55 hover:bg-white/[0.11] hover:shadow-lg hover:shadow-[#35E0C3]/10"
+              }`}
+            >
+              {labels[action]}
+              {isSelected && <span className="ml-1" aria-hidden="true">✓</span>}
+              {isUnavailable && <span className="sr-only"> {tryAgainUnavailableLabel}</span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ReplyTuningChips({
+  title,
+  labels,
+  selectedTuning,
+  unavailableLabel,
+}: {
+  title: string;
+  labels: Record<TuningAction, string>;
+  selectedTuning?: TuningAction | null;
+  unavailableLabel: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#DDE2FF]">{title}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {tuningOrder.map((action) => {
+          const isSelected = selectedTuning === action;
+
+          return (
+            <button
+              key={action}
+              type="button"
+              aria-pressed={isSelected}
+              aria-label={`${labels[action]} (${unavailableLabel})`}
+              title={unavailableLabel}
+              disabled
+              className="cursor-not-allowed rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-black text-[#B9C0E0] opacity-60 transition focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/35"
+            >
+              {labels[action]}
+              <span className="sr-only"> {unavailableLabel}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

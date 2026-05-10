@@ -111,6 +111,11 @@ if [ -f scripts/verify-feedback-reasons-v2.mjs ]; then
   node scripts/verify-feedback-reasons-v2.mjs
 fi
 
+if [ -f scripts/verify-reply-rating-tuning-chips.mjs ]; then
+  echo "==> Reply rating and tuning chips"
+  node scripts/verify-reply-rating-tuning-chips.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs
