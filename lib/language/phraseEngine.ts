@@ -11,6 +11,13 @@ import {
   type ContentDepthRuntimeContext,
 } from "@/lib/nodrama/contentDepthRuntime";
 import { mapSelectorStrategyToIntent } from "@/lib/nodrama/selectorMixing.mjs";
+import {
+  applyQaRewrite,
+  detectIntentConflict,
+  detectReplyContext,
+  resolveScenarioRoute,
+  runReplyQa,
+} from "@/lib/nodrama/replyIntelligence";
 
 export function generatePhraseEngineReply(
   input: GenerateRequest,
@@ -28,6 +35,17 @@ export function generatePhraseEngineReply(
     recommendedId?: string;
     scores: { id: string; score: number; reasons: string[] }[];
     contentDepth: ContentDepthRuntimeContext;
+    replyIntelligence: {
+      detectedContext: ReturnType<typeof detectReplyContext>;
+      intentConflict: ReturnType<typeof detectIntentConflict>;
+      routeOverride: ReturnType<typeof resolveScenarioRoute>;
+      qaByVariant: {
+        shortReply: ReturnType<typeof runReplyQa>;
+        naturalReply: ReturnType<typeof runReplyQa>;
+        strongReply: ReturnType<typeof runReplyQa>;
+        followUpReply: ReturnType<typeof runReplyQa>;
+      };
+    };
   };
 } {
   const match = matchSituationCategory(input.situation);
@@ -48,6 +66,15 @@ export function generatePhraseEngineReply(
   const intent = mapStrategyToPhraseIntent(
     contentDepth.selectorMixing.selectors.strategy.id
   );
+  const detectedContext = detectReplyContext(input.situation);
+  const routeOverride = resolveScenarioRoute(
+    contentDepth.selectorMixing.selectors.strategy.id,
+    detectedContext
+  );
+  const intentConflict = detectIntentConflict(
+    contentDepth.selectorMixing.selectors.strategy.id,
+    detectedContext
+  );
 
   const selection = selectPhrases({
     intent,
@@ -67,8 +94,9 @@ export function generatePhraseEngineReply(
     selectedPhrases: selection.selected,
     fallbackUsed: selection.fallbackUsed,
     blockedReason: selection.blockedReason,
+    routeOverride,
   });
-  const output = realizeReplyVariants({
+  const rawOutput = realizeReplyVariants({
     request: input,
     category: match.category,
     language,
@@ -76,7 +104,50 @@ export function generatePhraseEngineReply(
     channel,
     contentDepth,
     composed: composedOutput,
+    routeOverride,
   });
+
+  const qaByVariant = {
+    shortReply: runReplyQa({
+      text: rawOutput.shortReply,
+      detected: detectedContext,
+      strategyId: contentDepth.selectorMixing.selectors.strategy.id,
+      relationshipId: contentDepth.selectorMixing.selectors.relationship.id,
+      channelId: contentDepth.selectorMixing.selectors.channel.id,
+      toneId: contentDepth.selectorMixing.selectors.tone.id,
+    }),
+    naturalReply: runReplyQa({
+      text: rawOutput.naturalReply,
+      detected: detectedContext,
+      strategyId: contentDepth.selectorMixing.selectors.strategy.id,
+      relationshipId: contentDepth.selectorMixing.selectors.relationship.id,
+      channelId: contentDepth.selectorMixing.selectors.channel.id,
+      toneId: contentDepth.selectorMixing.selectors.tone.id,
+    }),
+    strongReply: runReplyQa({
+      text: rawOutput.strongReply,
+      detected: detectedContext,
+      strategyId: contentDepth.selectorMixing.selectors.strategy.id,
+      relationshipId: contentDepth.selectorMixing.selectors.relationship.id,
+      channelId: contentDepth.selectorMixing.selectors.channel.id,
+      toneId: contentDepth.selectorMixing.selectors.tone.id,
+    }),
+    followUpReply: runReplyQa({
+      text: rawOutput.followUpReply,
+      detected: detectedContext,
+      strategyId: contentDepth.selectorMixing.selectors.strategy.id,
+      relationshipId: contentDepth.selectorMixing.selectors.relationship.id,
+      channelId: contentDepth.selectorMixing.selectors.channel.id,
+      toneId: contentDepth.selectorMixing.selectors.tone.id,
+    }),
+  };
+
+  const output = {
+    shortReply: applyQaRewrite(rawOutput.shortReply, qaByVariant.shortReply, detectedContext.language),
+    naturalReply: applyQaRewrite(rawOutput.naturalReply, qaByVariant.naturalReply, detectedContext.language),
+    strongReply: applyQaRewrite(rawOutput.strongReply, qaByVariant.strongReply, detectedContext.language),
+    followUpReply: applyQaRewrite(rawOutput.followUpReply, qaByVariant.followUpReply, detectedContext.language),
+  };
 
   return {
     ok: true,
@@ -98,6 +169,12 @@ export function generatePhraseEngineReply(
         reasons: item.reasons,
       })),
       contentDepth,
+      replyIntelligence: {
+        detectedContext,
+        intentConflict,
+        routeOverride,
+        qaByVariant,
+      },
     },
   };
 }

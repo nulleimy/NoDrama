@@ -101,6 +101,16 @@ if [ -f scripts/verify-extended-qa-polish.mjs ]; then
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-extended-qa-polish.mjs
 fi
 
+if [ -f scripts/verify-reply-intelligence-v2.mjs ]; then
+  echo "==> Reply intelligence v2"
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-reply-intelligence-v2.mjs
+fi
+
+if [ -f scripts/verify-feedback-reasons-v2.mjs ]; then
+  echo "==> Feedback reasons v2"
+  node scripts/verify-feedback-reasons-v2.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs

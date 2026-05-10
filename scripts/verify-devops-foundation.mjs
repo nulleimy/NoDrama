@@ -10,6 +10,7 @@ const rootFiles = [
   "docs/ops/BACKUP_AND_RESTORE.md",
   "docs/ops/INCIDENT_RUNBOOK.md",
   "docs/ops/DATA_RETENTION.md",
+  "lib/featureFlags.mjs",
   "scripts/smoke-generate.mjs",
 ];
 
@@ -40,6 +41,12 @@ for (const envVar of requiredEnvVars) {
 const ci = readFileSync(".github/workflows/ci.yml", "utf8");
 assert.ok(ci.includes("npm ci"), "CI should install with npm ci");
 assert.ok(ci.includes("npm run verify"), "CI should run npm run verify");
+
+const generationLimit = readFileSync("lib/generationLimit.ts", "utf8");
+assert.ok(
+  generationLimit.includes("isGenerationLimitBypassed"),
+  "generation limit bypass should use the feature flag helper"
+);
 
 const backupDoc = readFileSync("docs/ops/BACKUP_AND_RESTORE.md", "utf8");
 for (const forbiddenLogData of ["Full situation text", "Generated outputs", "Secrets"]) {

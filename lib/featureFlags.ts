@@ -16,26 +16,14 @@ export type NoDramaFeatureFlags = {
   phraseRealizerEnabled: boolean;
 };
 
-function isEnabled(value: string | undefined) {
-  return value === "true";
-}
+import {
+  getNoDramaFeatureFlags as getRuntimeNoDramaFeatureFlags,
+  isGenerationLimitBypassed as isRuntimeGenerationLimitBypassed,
+} from "./featureFlags.mjs";
 
-export function getNoDramaFeatureFlags(
-  env: NoDramaFeatureFlagEnv = process.env
-): NoDramaFeatureFlags {
-  return {
-    testMode: isEnabled(env.NODRAMA_TEST_MODE),
-    disableFreeLimit: isEnabled(env.NODRAMA_DISABLE_FREE_LIMIT),
-    historyEnabled: isEnabled(env.NODRAMA_ENABLE_HISTORY),
-    eventLoggingEnabled: isEnabled(env.NODRAMA_ENABLE_EVENT_LOGGING),
-    cloudHistoryEnabled: isEnabled(env.NODRAMA_ENABLE_CLOUD_HISTORY),
-    phraseRealizerEnabled: isEnabled(env.NODRAMA_ENABLE_PHRASE_REALIZER),
-  };
-}
+export const getNoDramaFeatureFlags = getRuntimeNoDramaFeatureFlags as (
+  env?: NoDramaFeatureFlagEnv
+) => NoDramaFeatureFlags;
 
-export function isGenerationLimitBypassed(
-  env: NoDramaFeatureFlagEnv = process.env
-) {
-  const flags = getNoDramaFeatureFlags(env);
-  return flags.testMode || flags.disableFreeLimit;
-}
+export const isGenerationLimitBypassed =
+  isRuntimeGenerationLimitBypassed as (env?: NoDramaFeatureFlagEnv) => boolean;

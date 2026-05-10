@@ -102,6 +102,34 @@ function slotsByFamily(family: RealizerFamily, formal: boolean): EnglishRealizer
     };
   }
 
+  if (family === "money_refuse_loan") {
+    return {
+      opener: formal ? ["I understand the request.", "Thank you for being direct about this."] : ["I get why you’re asking.", "I understand this is difficult."],
+      reason: [
+        "I don’t want to mix lending money into our relationship.",
+        "I need to keep a clear boundary around money right now.",
+      ],
+      boundary: [
+        "I’m not going to lend money right now.",
+        "I can’t promise a loan.",
+        "My answer on this is no.",
+      ],
+      softener: [
+        "I don’t want this to create tension between us.",
+        "I’m saying it directly so there is no false expectation.",
+      ],
+      nextStep: [
+        "I’m going to leave it there.",
+        "Please take this as a clear answer.",
+      ],
+      closing: formal ? ["Thank you for understanding."] : ["Thanks for understanding."],
+      pressureFollowUp: [
+        "I understand this is uncomfortable, but I’m not going to lend money. I don’t want to keep reopening it.",
+        "I get that you wanted a different answer, but I’m not lending money. I don’t want this to complicate things between us.",
+      ],
+    };
+  }
+
   if (family === "clarify") {
     return {
       opener: formal ? ["Before I answer,", "To answer accurately,"] : ["Before I answer,", "I want to clarify this first."],
@@ -168,7 +196,7 @@ function slotsByFamily(family: RealizerFamily, formal: boolean): EnglishRealizer
     softener: ["I appreciate you thinking of me.", "Thanks for reaching out."],
     nextStep: [
       "I’m going to leave it there this time.",
-      "Please respect that.",
+      "I won’t join this time.",
     ],
     closing: formal ? ["Thank you for understanding."] : ["Thanks for understanding."],
     pressureFollowUp: [

@@ -24,6 +24,7 @@ type RealizerInput = {
   style: ReplyStyle;
   channel: ReplyChannel;
   composed: GenerateResponse["output"];
+  routeOverride?: RealizerFamily;
   contentDepth: {
     scenarioCategory: string;
     tonePresetId: string;
@@ -88,7 +89,10 @@ function realizeCzechVariants(input: RealizerInput): GenerateResponse["output"] 
 
     const complexity = complexityByVariant[variant];
     const parts = composeSlotParts(slots, variant, index, complexity);
-    if (variant === "strongReply") parts.splice(3, 0, "V tomhle mám jasno.");
+    if (variant === "strongReply") {
+      const emphasis = resolveStrongEmphasis(family, "cs");
+      if (emphasis) parts.splice(3, 0, emphasis);
+    }
     const withGender = parts.map((part) =>
       chooseCzechSpeakerForm(gender, {
         female: part,
@@ -121,7 +125,10 @@ function realizeEnglishVariants(input: RealizerInput): GenerateResponse["output"
 
     const complexity = complexityByVariant[variant];
     const parts = composeSlotParts(slots, variant, index, complexity);
-    if (variant === "strongReply") parts.splice(3, 0, "I’m clear on this.");
+    if (variant === "strongReply") {
+      const emphasis = resolveStrongEmphasis(family, "en");
+      if (emphasis) parts.splice(3, 0, emphasis);
+    }
     const reply = formatEnglishReply(parts, { channelId, complexity });
 
     if (hasCzechLeakage(reply)) {
@@ -148,6 +155,18 @@ function composeSlotParts(
   if (complexity === "compact") return [opener, boundary, nextStep];
   if (variant === "strongReply") return [opener, reason, boundary, nextStep, closing];
   return [opener, reason, boundary, softener, nextStep];
+}
+
+function resolveStrongEmphasis(family: RealizerFamily, locale: LanguageCode) {
+  if (family === "decline") {
+    return locale === "en" ? "My answer is no." : "Svoje rozhodnutí neměním.";
+  }
+
+  if (["boundary", "money_refuse_loan", "redirect", "exit"].includes(family)) {
+    return locale === "en" ? "I’m clear on this." : "V tomhle mám jasno.";
+  }
+
+  return "";
 }
 
 function pickPressureFollowUp(
@@ -293,6 +312,10 @@ function resolveRealizerFamily(input: RealizerInput): RealizerFamily {
   const intent = input.category.intent;
   const domain = input.category.domain;
 
+  if (domain === "money" || input.contentDepth.selectorMixing.inferredDomain === "money") {
+    return "money_refuse_loan";
+  }
+  if (input.routeOverride) return input.routeOverride;
   if (strategyId === "repair" || intent === "apology") return "repair";
   if (strategyId === "delay" || intent === "delay" || intent === "reschedule") {
     return "delay";

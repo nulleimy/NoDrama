@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLang } from "@/components/i18n/LanguageProvider";
 import { PaywallBox } from "@/components/PaywallBox";
 import type { GenerateErrorResponse, GenerateResponse } from "@/lib/generateContract";
+import {
+  detectIntentConflict,
+  detectReplyContext,
+  type ContextDetectionResult,
+  type ReplyQaResult,
+  type SelectorSource,
+} from "@/lib/nodrama/replyIntelligence";
 import { publicGeneratorTaxonomyControls } from "@/lib/nodrama/uiTaxonomyControls.mjs";
 
 type SelectorGroup = "tone" | "relationship" | "channel" | "strategy";
@@ -12,6 +19,50 @@ type ResultKey = keyof GenerateResponse["output"];
 type GeneratorError = {
   code?: GenerateErrorResponse["code"];
   message: string;
+};
+type SelectorSources = Record<SelectorGroup, SelectorSource>;
+type FeedbackRating =
+  | "good"
+  | "bad"
+  | "wrong_context"
+  | "too_formal"
+  | "too_harsh"
+  | "not_sendable";
+
+type FeedbackEvent = {
+  rating: FeedbackRating;
+  variantKey: ResultKey;
+  createdAt: string;
+  regressionCandidate?: boolean;
+};
+
+type GenerationMemoryRecord = {
+  id: string;
+  createdAt: string;
+  language: "cs" | "en";
+  userInputPreview: string;
+  selectedContext: {
+    toneId: string;
+    relationshipId: string;
+    channelId: string;
+    strategyId: string;
+    source?: SelectorSource;
+  };
+  inferredContext: {
+    domain: string;
+    scenarioFamily: string;
+    confidence: "low" | "medium" | "high";
+    reasons: string[];
+    warnings: string[];
+  };
+  qa?: ReplyQaResult;
+  outputPreview?: string;
+  userFeedback?: {
+    rating: FeedbackRating;
+    variantKey?: ResultKey;
+    note?: string;
+  };
+  feedbackEvents?: FeedbackEvent[];
 };
 
 const primaryGroups: SelectorGroup[] = ["tone", "relationship", "strategy"];
@@ -51,6 +102,19 @@ const copy = {
       strongReply: "Ráznější",
       followUpReply: "Když budou tlačit dál",
     },
+    suggested: "Navrženo podle textu",
+    manual: "Ručně upraveno",
+    lowConfidence: "Nízká jistota — zkontroluj výběr",
+    conflictTitle: "Možný konflikt záměru",
+    feedbackSaved: "Zpětná vazba uložena do Memory Lane",
+    feedbackLabels: {
+      good: "Použitelné",
+      bad: "Mimo",
+      wrong_context: "Špatný kontext",
+      too_formal: "Moc formální",
+      too_harsh: "Moc ostré",
+      not_sendable: "Neposlatelné",
+    },
   },
   en: {
     eyebrow: "NoDrama Reply",
@@ -82,6 +146,19 @@ const copy = {
       strongReply: "Strong",
       followUpReply: "Follow-up",
     },
+    suggested: "Suggested from your text",
+    manual: "Manually adjusted",
+    lowConfidence: "Low confidence — review selectors",
+    conflictTitle: "Possible intent conflict",
+    feedbackSaved: "Feedback saved to Memory Lane",
+    feedbackLabels: {
+      good: "Usable",
+      bad: "Off",
+      wrong_context: "Wrong context",
+      too_formal: "Too formal",
+      too_harsh: "Too harsh",
+      not_sendable: "Not sendable",
+    },
   },
 };
 
@@ -103,6 +180,61 @@ export function InteractiveGenerator() {
     channel: publicGeneratorTaxonomyControls.channel[0].id,
     strategy: publicGeneratorTaxonomyControls.strategy[0].id,
   });
+  const [selectionSource, setSelectionSource] = useState<SelectorSources>({
+    tone: "default",
+    relationship: "default",
+    channel: "default",
+    strategy: "default",
+  });
+  const [detectedContext, setDetectedContext] = useState<ContextDetectionResult | null>(null);
+  const [qaSummary, setQaSummary] = useState<ReplyQaResult | null>(null);
+  const [memoryId, setMemoryId] = useState<string | null>(null);
+  const [feedbackSaved, setFeedbackSaved] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState<Partial<Record<ResultKey, FeedbackRating>>>({});
+
+  useEffect(() => {
+    if (input.trim().length < 6) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      const detection = detectReplyContext(input);
+      setDetectedContext(detection);
+
+      const suggestions: Partial<Record<SelectorGroup, string>> = {
+        tone: detection.toneSuggestion,
+        relationship: detection.relationshipSuggestion,
+        strategy: detection.strategySuggestion,
+        channel: detection.channelSuggestion,
+      };
+
+      setSelected((current) => {
+        const next = { ...current };
+        (Object.keys(suggestions) as SelectorGroup[]).forEach((group) => {
+          const suggested = suggestions[group];
+          if (!suggested || selectionSource[group] === "manual") return;
+          if (publicGeneratorTaxonomyControls[group].some((option) => option.id === suggested)) {
+            next[group] = suggested;
+          }
+        });
+        return next;
+      });
+
+      setSelectionSource((current) => {
+        const next = { ...current };
+        (Object.keys(suggestions) as SelectorGroup[]).forEach((group) => {
+          const suggested = suggestions[group];
+          if (!suggested || current[group] === "manual") return;
+          if (publicGeneratorTaxonomyControls[group].some((option) => option.id === suggested)) {
+            next[group] = "auto";
+          }
+        });
+        return next;
+      });
+    }, 320);
+
+    return () => window.clearTimeout(timeout);
+  }, [input, selectionSource]);
 
   const generate = async () => {
     setIsLoading(true);
@@ -134,6 +266,41 @@ export function InteractiveGenerator() {
 
       if (data.ok) {
         setResult(data.output);
+        setSelectedFeedback({});
+        setFeedbackSaved(false);
+        const qa = (data.meta as { replyIntelligence?: { qaByVariant?: Record<string, ReplyQaResult> } } | undefined)
+          ?.replyIntelligence?.qaByVariant?.naturalReply;
+        setQaSummary(qa || null);
+        const saved = saveMemoryRecord({
+          createdAt: new Date().toISOString(),
+          language: lang,
+          userInputPreview: input.slice(0, 240),
+          selectedContext: {
+            toneId: selected.tone,
+            relationshipId: selected.relationship,
+            channelId: selected.channel,
+            strategyId: selected.strategy,
+            source: selectionSource.strategy,
+          },
+          inferredContext: detectedContext
+            ? {
+                domain: detectedContext.domain,
+                scenarioFamily: detectedContext.scenarioFamily,
+                confidence: detectedContext.confidence,
+                reasons: detectedContext.reasons,
+                warnings: detectedContext.warnings,
+              }
+            : {
+                domain: "general",
+                scenarioFamily: "general",
+                confidence: "low",
+                reasons: [],
+                warnings: [],
+              },
+          qa,
+          outputPreview: data.output.naturalReply.slice(0, 240),
+        });
+        setMemoryId(saved.id);
         return;
       }
 
@@ -166,6 +333,20 @@ export function InteractiveGenerator() {
     relationship: getSelectedOption("relationship", selected.relationship).label[lang],
     channel: getSelectedOption("channel", selected.channel).label[lang],
   };
+  const activeDetectedContext = input.trim().length >= 6 ? detectedContext : null;
+  const conflictHint = useMemo(
+    () =>
+      activeDetectedContext
+        ? detectIntentConflict(selected.strategy, activeDetectedContext)
+        : null,
+    [activeDetectedContext, selected.strategy]
+  );
+  const sourceLabel =
+    selectionSource.strategy === "manual"
+      ? t.manual
+      : selectionSource.strategy === "auto"
+        ? t.suggested
+        : null;
 
   return (
     <section className="relative overflow-hidden rounded-[2rem] bg-[#0B1020] px-4 py-5 text-[#F7F8FF] shadow-2xl shadow-slate-950/20 sm:px-6 sm:py-7 lg:px-8">
@@ -205,7 +386,10 @@ export function InteractiveGenerator() {
               label={t[group]}
               lang={lang}
               selectedId={selected[group]}
-              onSelect={(id) => setSelected((current) => ({ ...current, [group]: id }))}
+              onSelect={(id) => {
+                setSelected((current) => ({ ...current, [group]: id }));
+                setSelectionSource((current) => ({ ...current, [group]: "manual" }));
+              }}
             />
           ))}
         </div>
@@ -225,7 +409,10 @@ export function InteractiveGenerator() {
                 id={`generator-channel-${option.id}`}
                 isActive={selected.channel === option.id}
                 label={option.label[lang]}
-                onClick={() => setSelected((current) => ({ ...current, channel: option.id }))}
+                onClick={() => {
+                  setSelected((current) => ({ ...current, channel: option.id }));
+                  setSelectionSource((current) => ({ ...current, channel: "manual" }));
+                }}
                 secondary
               />
             ))}
@@ -269,6 +456,15 @@ export function InteractiveGenerator() {
                   copyAriaLabel={`${t.copy}: ${t.resultLabels[key]}`}
                   microActions={t.microActions}
                   onCopy={() => copyResult(key, result[key])}
+                  feedbackLabels={t.feedbackLabels}
+                  selectedFeedback={selectedFeedback[key]}
+                  onFeedback={(rating) => {
+                    if (!memoryId) return;
+                    updateMemoryFeedback(memoryId, key, rating);
+                    setSelectedFeedback((current) => ({ ...current, [key]: rating }));
+                    setFeedbackSaved(true);
+                    window.setTimeout(() => setFeedbackSaved(false), 1200);
+                  }}
                 />
               ))}
             </div>
@@ -281,6 +477,20 @@ export function InteractiveGenerator() {
                 <ContextItem label={t.relationship} value={selectedContext.relationship} />
                 <ContextItem label={t.channel} value={selectedContext.channel} />
               </dl>
+              {sourceLabel && <p className="mt-3 text-[#9CE7D9]">{sourceLabel}</p>}
+              {activeDetectedContext?.confidence === "low" && (
+                <p className="mt-1 text-[#FFD6A5]">{t.lowConfidence}</p>
+              )}
+              {conflictHint && (
+                <p className="mt-2 text-[#FFD6A5]">
+                  <span className="font-bold">{t.conflictTitle}: </span>
+                  {conflictHint}
+                </p>
+              )}
+              {qaSummary?.verdict && (
+                <p className="mt-2 text-[#DDE2FF]">QA: {qaSummary.verdict.toUpperCase()}</p>
+              )}
+              {feedbackSaved && <p className="mt-2 text-[#9CE7D9]">{t.feedbackSaved}</p>}
             </div>
           </div>
         )}
@@ -391,6 +601,9 @@ function ResultCard({
   copyAriaLabel,
   microActions,
   onCopy,
+  feedbackLabels,
+  selectedFeedback,
+  onFeedback,
 }: {
   label: string;
   text: string;
@@ -398,6 +611,9 @@ function ResultCard({
   copyAriaLabel: string;
   microActions: string[];
   onCopy: () => void;
+  feedbackLabels: Record<FeedbackRating, string>;
+  selectedFeedback?: FeedbackRating;
+  onFeedback: (rating: FeedbackRating) => void;
 }) {
   return (
     <article className="flex min-h-64 flex-col rounded-[1.35rem] border border-white/12 bg-white/[0.08] p-4 shadow-xl shadow-black/20">
@@ -425,6 +641,23 @@ function ResultCard({
           </button>
         ))}
       </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(Object.keys(feedbackLabels) as FeedbackRating[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            aria-pressed={selectedFeedback === key}
+            onClick={() => onFeedback(key)}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30 ${
+              selectedFeedback === key
+                ? "border-[#35E0C3]/80 bg-[#35E0C3] text-[#07101C]"
+                : "border-white/12 bg-white/[0.05] text-[#DDE2FF] hover:bg-white/[0.12]"
+            }`}
+          >
+            {feedbackLabels[key]}
+          </button>
+        ))}
+      </div>
     </article>
   );
 }
@@ -443,4 +676,49 @@ function getSelectedOption(group: SelectorGroup, id: string) {
     publicGeneratorTaxonomyControls[group].find((option) => option.id === id) ||
     publicGeneratorTaxonomyControls[group][0]
   );
+}
+
+const MEMORY_KEY = "nodrama.memory-lane.v1";
+
+function saveMemoryRecord(
+  payload: Omit<GenerationMemoryRecord, "id">
+): GenerationMemoryRecord {
+  const record: GenerationMemoryRecord = {
+    ...payload,
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  };
+  const current = loadMemoryRecords();
+  localStorage.setItem(MEMORY_KEY, JSON.stringify([record, ...current].slice(0, 120)));
+  return record;
+}
+
+function updateMemoryFeedback(id: string, variantKey: ResultKey, rating: FeedbackRating) {
+  const feedbackEvent: FeedbackEvent = {
+    rating,
+    variantKey,
+    createdAt: new Date().toISOString(),
+    regressionCandidate: rating === "wrong_context" ? true : undefined,
+  };
+  const updated = loadMemoryRecords().map((record) =>
+    record.id === id
+      ? {
+          ...record,
+          userFeedback: { rating, variantKey },
+          feedbackEvents: [...(record.feedbackEvents || []), feedbackEvent].slice(-40),
+        }
+      : record
+  );
+  localStorage.setItem(MEMORY_KEY, JSON.stringify(updated));
+}
+
+function loadMemoryRecords(): GenerationMemoryRecord[] {
+  const raw = localStorage.getItem(MEMORY_KEY);
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as GenerationMemoryRecord[]) : [];
+  } catch {
+    return [];
+  }
 }
