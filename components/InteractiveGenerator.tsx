@@ -511,7 +511,7 @@ export function InteractiveGenerator() {
                     setFeedbackAction(action);
                     if (action === "try_again") return;
                     if (!memoryId) return;
-                    const rating = action === "fits" ? "good" : "bad";
+                    const rating = resolveFeedbackRatingFromChip(action, qaSummary);
                     updateMemoryFeedback(memoryId, key, rating);
                     setSelectedFeedback((current) => ({ ...current, [key]: action }));
                     setFeedbackSaved(true);
@@ -834,6 +834,30 @@ function saveMemoryRecord(
   const current = loadMemoryRecords();
   localStorage.setItem(MEMORY_KEY, JSON.stringify([record, ...current].slice(0, 120)));
   return record;
+}
+
+function resolveFeedbackRatingFromChip(
+  action: FeedbackAction,
+  qa?: ReplyQaResult | null
+): FeedbackRating {
+  if (action === "fits") return "good";
+
+  if (action === "not_quite") {
+    if (!qa) return "wrong_context";
+    if (qa.verdict === "reject" || qa.sendability < 0.65) return "not_sendable";
+    if (qa.contextFit < 0.7 || qa.strategyFit < 0.7 || qa.mismatchType) {
+      return "wrong_context";
+    }
+    if (qa.toneFit < 0.7) {
+      return qa.reasons.some((reason) => reason.includes("formal"))
+        ? "too_formal"
+        : "too_harsh";
+    }
+
+    return "wrong_context";
+  }
+
+  return "bad";
 }
 
 function updateMemoryFeedback(id: string, variantKey: ResultKey, rating: FeedbackRating) {
