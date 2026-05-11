@@ -126,6 +126,11 @@ if [ -f scripts/verify-generator-quality.mjs ]; then
   node scripts/verify-generator-quality.mjs
 fi
 
+if [ -f scripts/verify-safe-logging-core.mjs ]; then
+  echo "==> Safe logging core"
+  node scripts/verify-safe-logging-core.mjs
+fi
+
 echo "==> Lint"
 if command -v npm >/dev/null 2>&1; then
   npm run lint
