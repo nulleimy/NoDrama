@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fbf7ef;
+  --foreground: #181713;
 }
 
 @theme inline {
@@ -12,15 +12,65 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.ambient-glow {
+  animation: ambient-drift 18s ease-in-out infinite alternate;
+}
+
+.motion-card {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.motion-card:hover {
+  border-color: rgba(184, 255, 77, 0.55);
+  box-shadow: 0 22px 70px rgba(17, 18, 24, 0.12);
+  transform: translateY(-3px);
+}
+
+.result-fade {
+  animation: result-fade-up 260ms ease both;
+}
+
+@keyframes ambient-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(0, -10px, 0) scale(1.025);
+  }
+}
+
+@keyframes result-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-glow,
+  .result-fade {
+    animation: none;
+  }
+
+  .motion-card,
+  .motion-card:hover {
+    transform: none;
+    transition: none;
+  }
 }
