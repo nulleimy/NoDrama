@@ -116,6 +116,11 @@ if [ -f scripts/verify-soft-neon-landing-and-feedback.mjs ]; then
   node scripts/verify-soft-neon-landing-and-feedback.mjs
 fi
 
+if [ -f scripts/verify-reply-rating-tuning-chips.mjs ]; then
+  echo "==> Reply rating and tuning chips"
+  node scripts/verify-reply-rating-tuning-chips.mjs
+fi
+
 if [ -f scripts/verify-generator-quality.mjs ]; then
   echo "==> Generator quality v1"
   node scripts/verify-generator-quality.mjs

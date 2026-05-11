@@ -13,14 +13,7 @@ const expectedRatings = [
   "not_sendable",
 ];
 
-const expectedCzechLabels = [
-  "Použitelné",
-  "Mimo",
-  "Špatný kontext",
-  "Moc formální",
-  "Moc ostré",
-  "Neposlatelné",
-];
+const expectedCzechLabels = ["Sedí ti to?", "Sedí", "Nesedí", "Jiná verze"];
 
 for (const rating of expectedRatings) {
   assert.ok(
@@ -42,7 +35,11 @@ assert.ok(
   generator.includes("regressionCandidate") && generator.includes('rating === "wrong_context"'),
   "wrong_context feedback should be marked as a future regression candidate"
 );
-assert.ok(generator.includes("aria-pressed={selectedFeedback === key}"), "Feedback controls should expose selected state");
+assert.ok(
+  generator.includes("aria-pressed={selectedFeedback === key}") ||
+    generator.includes("aria-pressed={isSelected}"),
+  "Feedback controls should expose selected state"
+);
 assert.ok(
   verify.includes("scripts/verify-feedback-reasons-v2.mjs"),
   "Feedback verifier must be wired into npm run verify"
