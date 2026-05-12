@@ -235,6 +235,8 @@ export function InteractiveGenerator() {
   const [selectedReplyVariant, setSelectedReplyVariant] = useState<ResultKey | null>(null);
   const [feedbackAction, setFeedbackAction] = useState<FeedbackAction | null>(null);
   const [selectedFeedback, setSelectedFeedback] = useState<Partial<Record<ResultKey, FeedbackAction>>>({});
+  const [regressionCandidateCount, setRegressionCandidateCount] = useState(getStoredRegressionCandidateCount);
+  const [regressionExportMessage, setRegressionExportMessage] = useState<string | null>(null);
   const [tuningAction] = useState<TuningAction | null>(null);
 
   useEffect(() => {
@@ -482,6 +484,31 @@ export function InteractiveGenerator() {
         >
           {isLoading ? t.loading : t.generate}
         </button>
+
+        <div className="flex flex-col gap-2 rounded-[1.25rem] border border-white/10 bg-white/[0.045] p-4 text-xs text-[#B9C0E0] sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-bold text-[#F7F8FF]">{t.memoryLane.title}</p>
+            {regressionExportMessage && (
+              <p className="mt-1" role="status">
+                {regressionExportMessage}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const exported = exportRegressionCandidates();
+              setRegressionCandidateCount(exported);
+              setRegressionExportMessage(
+                exported > 0 ? `${t.memoryLane.title}: ${exported}` : t.memoryLane.empty
+              );
+            }}
+            className="rounded-full border border-[#35E0C3]/40 bg-[#35E0C3]/10 px-4 py-2 text-xs font-black text-[#9CE7D9] transition hover:border-[#35E0C3]/75 hover:bg-[#35E0C3]/16 focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30"
+          >
+            {t.memoryLane.exportProblemCases}
+            {regressionCandidateCount > 0 ? ` (${regressionCandidateCount})` : ""}
+          </button>
+        </div>
 
         {error && (
           <div
@@ -832,6 +859,11 @@ function getSelectedOption(group: SelectorGroup, id: string) {
 
 const MEMORY_KEY = "nodrama.memory-lane.v1";
 
+function getStoredRegressionCandidateCount(): number {
+  if (typeof localStorage === "undefined") return 0;
+  return getRegressionCandidates(loadMemoryRecords()).length;
+}
+
 function saveMemoryRecord(
   payload: Omit<GenerationMemoryRecord, "id">
 ): GenerationMemoryRecord {
@@ -897,4 +929,103 @@ function loadMemoryRecords(): GenerationMemoryRecord[] {
   } catch {
     return [];
   }
+}
+
+function isProblemFeedbackRating(rating?: FeedbackRating): boolean {
+  return rating === "wrong_context" || rating === "bad" || rating === "not_sendable";
+}
+
+export function getRegressionCandidates(records: GenerationMemoryRecord[]): RegressionCandidateExportItem[] {
+  return records.filter(isRegressionCandidate).map(toRegressionCandidateExportItem);
+}
+
+function isRegressionCandidate(record: GenerationMemoryRecord): boolean {
+  return (
+    record.feedbackEvents?.some((event) => event.regressionCandidate === true) ||
+    isProblemFeedbackRating(record.userFeedback?.rating) ||
+    record.feedbackEvents?.some((event) => isProblemFeedbackRating(event.rating)) ||
+    false
+  );
+}
+
+function toRegressionCandidateExportItem(record: GenerationMemoryRecord): RegressionCandidateExportItem {
+  const feedbackEvents = record.feedbackEvents || [];
+  const ratings = Array.from(
+    new Set(
+      [
+        record.userFeedback?.rating,
+        ...feedbackEvents.map((event) => event.rating),
+      ].filter(Boolean) as FeedbackRating[]
+    )
+  );
+  const variantKey = record.userFeedback?.variantKey || feedbackEvents[feedbackEvents.length - 1]?.variantKey;
+
+  return {
+    id: record.id,
+    createdAt: record.createdAt,
+    language: record.language,
+    situationPreview: createSituationPreview(record.userInputPreview || "", 96),
+    situationHash: record.situationHash,
+    selectedContext: record.selectedContext,
+    inferredContext: record.inferredContext,
+    qa: summarizeMemoryQa(record.qa),
+    feedbackEvents,
+    ratings,
+    variantKey,
+    reason: getRegressionCandidateReasons(record),
+  };
+}
+
+function getRegressionCandidateReasons(record: GenerationMemoryRecord): string[] {
+  const reasons = new Set<string>();
+
+  if (record.feedbackEvents?.some((event) => event.regressionCandidate === true)) {
+    reasons.add("feedback_event_regression_candidate");
+  }
+
+  if (isProblemFeedbackRating(record.userFeedback?.rating)) {
+    reasons.add(`rating_${record.userFeedback?.rating}`);
+  }
+
+  for (const event of record.feedbackEvents || []) {
+    if (isProblemFeedbackRating(event.rating)) {
+      reasons.add(`feedback_event_${event.rating}`);
+    }
+  }
+
+  return Array.from(reasons);
+}
+
+function summarizeMemoryQa(qa?: ReplyQaResult) {
+  if (!qa) return undefined;
+
+  return {
+    verdict: qa.verdict,
+    contextFit: qa.contextFit,
+    toneFit: qa.toneFit,
+    strategyFit: qa.strategyFit,
+    sendability: qa.sendability,
+    mismatchType: qa.mismatchType,
+    reasons: qa.reasons,
+    forbiddenTermsHit: qa.forbiddenTermsHit,
+  };
+}
+
+export function exportRegressionCandidates(): number {
+  const candidates = getRegressionCandidates(loadMemoryRecords());
+  if (!candidates.length) return 0;
+
+  const blob = new Blob([JSON.stringify(candidates, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `nodrama-regression-candidates-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+
+  return candidates.length;
 }
