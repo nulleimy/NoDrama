@@ -61,9 +61,9 @@ Feedback marked `wrong_context` or `bad` is flagged as `regressionCandidate: tru
 
 The UI includes a local-only control for clearing regression candidate flags without deleting the rest of local history.
 
-## CLI Smoke Report
+## Runtime Smoke Report
 
-`scripts/smoke-cli-scenarios.mjs --write-report` writes a local report to:
+`npm run smoke:generate -- --write-report` writes a local report to:
 
 ```text
 data/runtime/smoke-results/latest.json
@@ -73,10 +73,10 @@ The report includes:
 
 - Run id and creation time.
 - API base URL.
-- Total, pass, fail, and review counts.
-- Per-case section, label, input preview, input hash, selectors, detected context, QA summary, verdict, reasons, forbidden hits, and required term misses when available.
+- Total, pass, and fail counts.
+- Per-scenario id, input preview, input hash, HTTP status, response `ok`, detected scenario family, detected domain, detected confidence, forbidden hits, and pass/fail status.
 
-The report does not store full situation text or full generated outputs. The runtime report directory is gitignored and should not be committed by default.
+The runtime smoke matrix is manual and requires a running local app server. It is not part of `npm run verify`, so deterministic verification does not depend on a live server. The report does not store full situation text or full generated outputs. The runtime report directory is gitignored and should not be committed by default.
 
 ## Delete/export Expectations
 

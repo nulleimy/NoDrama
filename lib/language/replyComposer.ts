@@ -841,6 +841,22 @@ function composeCzechExit(
 ) {
   const isGroup =
     input.contentDepth.selectorMixing.selectors.channel.id === "group_chat";
+  const isStrangerDm =
+    input.contentDepth.selectorMixing.selectors.relationship.id ===
+      "stranger_public" ||
+    input.contentDepth.selectorMixing.selectors.channel.id === "social_dm";
+
+  if (isStrangerDm) {
+    return {
+      shortReply: "Tuhle komunikaci ukončuji. Prosím už mi nepište.",
+      naturalReply:
+        "Tuhle komunikaci teď ukončuji. Zpráva pro mě není v pořádku a nechci v tom pokračovat.",
+      strongReply:
+        "V téhle komunikaci pokračovat nebudu. Prosím respektujte to a dál mi nepište.",
+      followUpReply:
+        "Kdyby zprávy pokračovaly: „Už jsem napsal/a, že komunikaci ukončuji. Prosím dál mě nekontaktujte.“",
+    };
+  }
 
   return {
     shortReply: isGroup
@@ -864,6 +880,22 @@ function composeEnglishExit(
 ) {
   const isGroup =
     input.contentDepth.selectorMixing.selectors.channel.id === "group_chat";
+  const isStrangerDm =
+    input.contentDepth.selectorMixing.selectors.relationship.id ===
+      "stranger_public" ||
+    input.contentDepth.selectorMixing.selectors.channel.id === "social_dm";
+
+  if (isStrangerDm) {
+    return {
+      shortReply: "I’m ending this communication. Please do not message me again.",
+      naturalReply:
+        "I’m ending this communication now. This message is not appropriate, and I do not want to continue.",
+      strongReply:
+        "I’m not continuing this communication. Please respect that and do not contact me again.",
+      followUpReply:
+        "If messages continue: “I already said I’m ending this communication. Please do not contact me again.”",
+    };
+  }
 
   return {
     shortReply: isGroup
@@ -1004,6 +1036,18 @@ function composeCzechDecline(
   isFormal: boolean,
   isFirm: boolean
 ) {
+  if (isPartnerBoundaryContext(input)) {
+    return {
+      shortReply: "Díky, ale nechci pokračovat v dalším setkávání.",
+      naturalReply:
+        "Díky za dosavadní kontakt, ale nechci pokračovat v dalším setkávání. Chci to říct jasně a férově.",
+      strongReply:
+        "Nechci pokračovat v dalším setkávání. Prosím respektuj, že moje rozhodnutí je konečné.",
+      followUpReply:
+        "Kdyby přišel tlak: „Rozumím, že to může mrzet, ale nechci v tom pokračovat.“",
+    };
+  }
+
   if (isFamilyDeclineContext(input)) {
     return {
       shortReply: "Tento víkend nepřijedu. Nechci se kvůli tomu hádat.",
@@ -1035,6 +1079,18 @@ function composeEnglishDecline(
   isFormal: boolean,
   isFirm: boolean
 ) {
+  if (isPartnerBoundaryContext(input)) {
+    return {
+      shortReply: "Thank you, but I don’t want to keep dating.",
+      naturalReply:
+        "Thank you for the time we’ve had, but I don’t want to continue dating. I want to be clear and respectful.",
+      strongReply:
+        "I don’t want to continue dating. Please respect that my decision is final.",
+      followUpReply:
+        "If they keep pushing: “I understand this may be disappointing, but I don’t want to continue.”",
+    };
+  }
+
   if (isFamilyDeclineContext(input)) {
     return {
       shortReply:

@@ -37,6 +37,7 @@ const legacyRelationshipIds = [
   "service",
   "group",
   "acquaintance",
+  "stranger",
 ] as const;
 
 const finalChannelIds = [
@@ -58,6 +59,7 @@ const legacyChannelIds = [
   "instagram_dm",
   "signal",
   "teams",
+  "private_message",
 ] as const;
 
 const finalStrategyIds = [
@@ -80,6 +82,9 @@ const legacyStrategyIds = [
   "clarify_intent",
   "reschedule_option",
   "brief_exit",
+  "negotiate_terms",
+  "exit_conversation",
+  "decline_kindly",
 ] as const;
 
 const legacyToneSchema = z.enum(["Milý", "Asertivní", "Formální", "Vtipný"]);
@@ -136,6 +141,7 @@ const legacyRelationshipById: Record<RelationshipId, LegacyRelationship> = {
   service: "Práce",
   group: "Kamarádi",
   acquaintance: "Kamarádi",
+  stranger: "Kamarádi",
 };
 
 const legacyChannelById: Record<ChannelId, LegacyChannel> = {
@@ -154,6 +160,7 @@ const legacyChannelById: Record<ChannelId, LegacyChannel> = {
   instagram_dm: "WhatsApp",
   signal: "WhatsApp",
   teams: "Slack",
+  private_message: "WhatsApp",
 };
 
 const generateRequestBaseSchema = z.object({
@@ -191,9 +198,37 @@ const generateRequestBaseSchema = z.object({
 
 type GenerateRequestBase = z.infer<typeof generateRequestBaseSchema>;
 
+const canonicalRelationshipIdByAlias: Record<string, string> = {
+  dating: "partner",
+  stranger: "stranger_public",
+};
+
+const canonicalChannelIdByAlias: Record<string, string> = {
+  private_message: "messenger_1to1",
+};
+
+const canonicalStrategyIdByAlias: Record<string, string> = {
+  negotiate_terms: "negotiate",
+  exit_conversation: "exit",
+  decline_kindly: "soft_decline",
+};
+
 function normalizeGenerateRequest(input: GenerateRequestBase) {
+  const relationshipId = input.relationshipId
+    ? canonicalRelationshipIdByAlias[input.relationshipId] ?? input.relationshipId
+    : undefined;
+  const channelId = input.channelId
+    ? canonicalChannelIdByAlias[input.channelId] ?? input.channelId
+    : undefined;
+  const strategyId = input.strategyId
+    ? canonicalStrategyIdByAlias[input.strategyId] ?? input.strategyId
+    : undefined;
+
   return {
     ...input,
+    relationshipId,
+    channelId,
+    strategyId,
     tone: input.tone ?? (input.toneId ? legacyToneById[input.toneId] : "Milý"),
     relationship:
       input.relationship ??

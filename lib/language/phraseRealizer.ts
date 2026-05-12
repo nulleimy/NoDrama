@@ -67,10 +67,31 @@ export function resolveRealizerLocale(
 
 export function realizeReplyVariants(input: RealizerInput): GenerateResponse["output"] {
   const locale = resolveRealizerLocale(input.request, input.language);
+  if (shouldUseComposedScenarioReply(input)) {
+    return enforceVariantDiversity(input.composed, locale, input.composed);
+  }
+
   const realized =
     locale === "en" ? realizeEnglishVariants(input) : realizeCzechVariants(input);
 
   return enforceVariantDiversity(realized, locale, input.composed);
+}
+
+function shouldUseComposedScenarioReply(input: RealizerInput) {
+  const selectors = input.contentDepth.selectorMixing.selectors;
+
+  if (
+    input.contentDepth.scenarioCategory === "dating_clarity" &&
+    selectors.strategy.id === "soft_decline"
+  ) {
+    return true;
+  }
+
+  return (
+    selectors.relationship.id === "stranger_public" &&
+    selectors.channel.id === "social_dm" &&
+    selectors.strategy.id === "exit"
+  );
 }
 
 function realizeCzechVariants(input: RealizerInput): GenerateResponse["output"] {

@@ -59,6 +59,30 @@ assert.equal(mixed.relationship, "Práce");
 assert.equal(mixed.channel, "Slack");
 assert.equal(mixed.relationshipId, "authority");
 
+const selectorAliases = parseValid("runtime smoke selector aliases", {
+  situation: "Cizí člověk mi píše nevhodnou zprávu a chci slušně ukončit komunikaci.",
+  toneId: "assertive",
+  relationshipId: "stranger",
+  channelId: "private_message",
+  strategyId: "exit_conversation",
+});
+
+assert.equal(selectorAliases.relationshipId, "stranger_public");
+assert.equal(selectorAliases.channelId, "messenger_1to1");
+assert.equal(selectorAliases.strategyId, "exit");
+assert.equal(selectorAliases.relationship, "Kamarádi");
+assert.equal(selectorAliases.channel, "WhatsApp");
+
+const strategyAliases = parseValid("manual strategy aliases", {
+  situation: "Klient chce úpravy zdarma mimo rozsah.",
+  toneId: "formal",
+  relationshipId: "client",
+  channelId: "email",
+  strategyId: "negotiate_terms",
+});
+
+assert.equal(strategyAliases.strategyId, "negotiate");
+
 parseInvalid("invalid tone ID", {
   situation: "Nestíhám dodat výstup šéfovi na Slacku.",
   toneId: "bossy",

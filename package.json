@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "verify": "bash scripts/verify.sh",
+    "smoke:generate": "node scripts/smoke-generate-scenarios.mjs",
     "verify:content-depth": "node scripts/verify-nodrama-content-depth.mjs",
     "verify:taxonomy-schema-v2": "node scripts/verify-taxonomy-schema-v2.mjs",
     "verify:micro-situation-seed-v1": "node scripts/verify-micro-situation-seed-v1.mjs",
