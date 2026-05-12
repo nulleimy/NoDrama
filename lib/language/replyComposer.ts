@@ -226,7 +226,7 @@ function composeCzech(
   if (family === "clarify") return composeCzechClarify(input, isFormal, isFirm);
   if (family === "redirect") return composeCzechRedirect(input, isFormal, isFirm);
   if (family === "exit") return composeCzechExit(input, isFormal, isFirm);
-  if (family === "delay") return composeCzechDelay(isFormal, isFirm);
+  if (family === "delay") return composeCzechDelay(input, isFormal, isFirm);
   if (family === "boundary") return composeCzechBoundary(input, isFormal, isFirm);
   return composeCzechDecline(input, isFormal, isFirm);
 }
@@ -245,7 +245,7 @@ function composeEnglish(
   if (family === "clarify") return composeEnglishClarify(input, isFormal, isFirm);
   if (family === "redirect") return composeEnglishRedirect(input, isFormal, isFirm);
   if (family === "exit") return composeEnglishExit(input, isFormal, isFirm);
-  if (family === "delay") return composeEnglishDelay(isFormal, isFirm);
+  if (family === "delay") return composeEnglishDelay(input, isFormal, isFirm);
   if (family === "boundary") return composeEnglishBoundary(input, isFormal, isFirm);
   return composeEnglishDecline(input, isFormal, isFirm);
 }
@@ -484,7 +484,36 @@ function composeEnglishClarify(
   };
 }
 
-function composeCzechDelay(isFormal: boolean, isFirm: boolean) {
+function isBuyTimeWithoutDeadlineContext(input: ComposerInput) {
+  const normalized = normalizeSituation(input.request.situation);
+
+  return (
+    /\b(ziskat cas|odpovedet hned|bez slibovani|konkretniho vysledku|buy time|without promising)\b/.test(
+      normalized
+    ) &&
+    !/\b(deadline|termin|termín|dodat|deliverable|vystup|výstup)\b/.test(normalized)
+  );
+}
+
+function composeCzechDelay(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  if (isBuyTimeWithoutDeadlineContext(input)) {
+    return {
+      shortReply: "Potřebuji si to nejdřív promyslet, než odpovím.",
+      naturalReply: isFormal
+        ? "Potřebuji si to nejdřív promyslet, abych neslíbil/a konkrétní výsledek dřív, než v tom budu mít jasno."
+        : "Potřebuju si to nejdřív promyslet. Nechci teď slíbit konkrétní výsledek, dokud v tom nebudu mít jasno.",
+      strongReply: isFirm
+        ? "Teď nechci dát rychlý slib. Nejdřív si to promyslím a ozvu se, až budu vědět, co můžu říct poctivě."
+        : "Nechci odpovědět pod tlakem jen proto, aby něco zaznělo. Nejdřív si to promyslím.",
+      followUpReply:
+        "Kdyby tlačili na okamžitou odpověď: „Rozumím, že chceš reakci hned, ale nechci slíbit něco, co nemám promyšlené.“",
+    };
+  }
+
   return {
     shortReply: "Potřebuji to posunout. Dám vědět realistický další termín.",
     naturalReply: isFormal
@@ -498,7 +527,25 @@ function composeCzechDelay(isFormal: boolean, isFirm: boolean) {
   };
 }
 
-function composeEnglishDelay(isFormal: boolean, isFirm: boolean) {
+function composeEnglishDelay(
+  input: ComposerInput,
+  isFormal: boolean,
+  isFirm: boolean
+) {
+  if (isBuyTimeWithoutDeadlineContext(input)) {
+    return {
+      shortReply: "I need to think this through before I answer.",
+      naturalReply: isFormal
+        ? "I need to think this through first so I do not promise a specific outcome before I am clear."
+        : "I need to think this through first. I do not want to promise a specific outcome before I am clear.",
+      strongReply: isFirm
+        ? "I do not want to give a rushed promise. I will think it through and come back when I can answer honestly."
+        : "I do not want to answer under pressure just to say something. I need to think it through first.",
+      followUpReply:
+        "If they press for an immediate answer: “I understand you want a reply now, but I do not want to promise something I have not thought through.”",
+    };
+  }
+
   return {
     shortReply: "I need to move this. I’ll share a realistic next timing.",
     naturalReply: isFormal
@@ -517,6 +564,55 @@ function composeCzechBoundary(
   isFormal: boolean,
   isFirm: boolean
 ) {
+  if (isWorkExtraWorkBoundaryContext(input)) {
+    return {
+      shortReply: "Práci navíc teď nepřebírám.",
+      naturalReply:
+        "Chápu, že je toho hodně, ale práci navíc teď nepřebírám. Potřebuju držet svoje současné priority.",
+      strongReply:
+        "Práci navíc nepřebírám. Pokud se mají měnit priority, potřebuju, aby se to domluvilo jasně v týmu.",
+      followUpReply:
+        "Kdyby se požadavek vracel: „Rozumím, ale bez změny priorit to na sebe nevezmu.“",
+    };
+  }
+
+  if (isFriendHelpCapacityContext(input)) {
+    return {
+      shortReply: "Se stěhováním teď pomoct nezvládnu.",
+      naturalReply:
+        "Mrzí mě to, ale se stěhováním teď pomoct nezvládnu. Nemám na to kapacitu a nechci slíbit něco, co pak nedám.",
+      strongReply: isFirm
+        ? "Se stěhováním nepomůžu. Potřebuju respektovat svoji kapacitu a nebudu to nechávat otevřené."
+        : "Teď na to nemám energii, takže pomoc neslíbím.",
+      followUpReply:
+        "Kdyby přišel tlak: „Chápu, že by se ti pomoc hodila, ale kapacitu na to teď nemám.“",
+    };
+  }
+
+  if (isRepeatedFavorsContext(input)) {
+    return {
+      shortReply: "Další laskavosti teď brát nebudu.",
+      naturalReply:
+        "Vnímám, že se to opakuje, a potřebuju nastavit jasnou hranici. Další laskavosti teď brát nebudu.",
+      strongReply:
+        "Moje odpověď je ne. Nechci dál fungovat tak, že automaticky přebírám další laskavosti.",
+      followUpReply:
+        "Kdyby se to opakovalo: „Rozumím, že bys chtěl/a pomoc, ale tuhle hranici neměním.“",
+    };
+  }
+
+  if (isSocialDmPersonalBoundaryContext(input)) {
+    return {
+      shortReply: "Tohle je na mě už moc osobní.",
+      naturalReply:
+        "Tohle je na mě už moc osobní, takže konverzaci trochu ubrzdím. Prosím držme ji víc obecně.",
+      strongReply:
+        "V osobních otázkách pokračovat nechci. Prosím respektuj, že tuhle hranici držím.",
+      followUpReply:
+        "Kdyby to pokračovalo: „Rozumím, ale osobní věci tady řešit nechci.“",
+    };
+  }
+
   if (isPartnerBoundaryContext(input)) {
     return {
       shortReply: "Tohle téma teď dál otevírat nechci.",
@@ -574,6 +670,55 @@ function composeEnglishBoundary(
   isFormal: boolean,
   isFirm: boolean
 ) {
+  if (isWorkExtraWorkBoundaryContext(input)) {
+    return {
+      shortReply: "I am not taking on extra work right now.",
+      naturalReply:
+        "I understand there is a lot going on, but I am not taking on extra work right now. I need to keep my current priorities clear.",
+      strongReply:
+        "I am not taking on the extra work. If priorities need to change, that needs to be agreed clearly with the team.",
+      followUpReply:
+        "If it comes back: “I understand, but without a priority change I am not taking this on.”",
+    };
+  }
+
+  if (isFriendHelpCapacityContext(input)) {
+    return {
+      shortReply: "I cannot help with the move right now.",
+      naturalReply:
+        "I am sorry, but I cannot help with the move right now. I do not have the capacity, and I do not want to promise something I cannot follow through on.",
+      strongReply: isFirm
+        ? "I am not helping with the move. I need to respect my capacity, and I am not leaving this open."
+        : "I do not have the energy for it right now, so I cannot promise help.",
+      followUpReply:
+        "If there is pressure: “I understand the help would matter, but I do not have the capacity for it right now.”",
+    };
+  }
+
+  if (isRepeatedFavorsContext(input)) {
+    return {
+      shortReply: "I am not taking on more favors right now.",
+      naturalReply:
+        "I can see this has become repeated, and I need to set a clear boundary. I am not taking on more favors right now.",
+      strongReply:
+        "My answer is no. I do not want to keep automatically taking on more favors.",
+      followUpReply:
+        "If it repeats: “I understand you want help, but I am not changing this boundary.”",
+    };
+  }
+
+  if (isSocialDmPersonalBoundaryContext(input)) {
+    return {
+      shortReply: "This is getting too personal for me.",
+      naturalReply:
+        "This is getting too personal for me, so I am going to slow the conversation down. Please keep it more general.",
+      strongReply:
+        "I do not want to continue with personal questions. Please respect that boundary.",
+      followUpReply:
+        "If it continues: “I understand, but I do not want to discuss personal things here.”",
+    };
+  }
+
   if (isAfterHoursWorkBoundaryContext(input)) {
     return {
       shortReply:
@@ -755,6 +900,42 @@ function isSocialBoundaryContext(input: ComposerInput) {
   return (
     ["friend", "close_friend"].includes(relationshipId) &&
     input.contentDepth.selectorMixing.inferredDomain === "social"
+  );
+}
+
+function isWorkExtraWorkBoundaryContext(input: ComposerInput) {
+  const normalized = normalizeSituation(input.request.situation);
+
+  return (
+    /\b(kolega|kolegyn|coworker|colleague|peer)\b/.test(normalized) &&
+    /\b(praci navic|prace navic|extra work|additional work)\b/.test(normalized)
+  );
+}
+
+function isFriendHelpCapacityContext(input: ComposerInput) {
+  const normalized = normalizeSituation(input.request.situation);
+
+  return (
+    /\b(kamaradka|kamarad|close friend|friend)\b/.test(normalized) &&
+    /\b(pomoct|pomoc|stehovanim|moving|help)\b/.test(normalized) &&
+    /\b(nemam energii|kapacitu|capacity|energy)\b/.test(normalized)
+  );
+}
+
+function isRepeatedFavorsContext(input: ComposerInput) {
+  const normalized = normalizeSituation(input.request.situation);
+
+  return /\b(laskavost|laskavosti|favors|favours|porad chce|opakovane chce)\b/.test(
+    normalized
+  );
+}
+
+function isSocialDmPersonalBoundaryContext(input: ComposerInput) {
+  const normalized = normalizeSituation(input.request.situation);
+
+  return (
+    /\b(instagram|social dm|direct message)\b/.test(normalized) &&
+    /\b(osobne|personal|ubrzdit|slow down)\b/.test(normalized)
   );
 }
 

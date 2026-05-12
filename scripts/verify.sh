@@ -131,6 +131,11 @@ if [ -f scripts/verify-safe-logging-core.mjs ]; then
   node scripts/verify-safe-logging-core.mjs
 fi
 
+if [ -f scripts/verify-scenario-specific-routing.mjs ]; then
+  echo "==> Scenario-specific reply routing"
+  node scripts/verify-scenario-specific-routing.mjs
+fi
+
 echo "==> Lint"
 if command -v npm >/dev/null 2>&1; then
   npm run lint
