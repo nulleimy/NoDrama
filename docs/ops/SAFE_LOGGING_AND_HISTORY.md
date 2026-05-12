@@ -61,6 +61,12 @@ Feedback marked `wrong_context` or `bad` is flagged as `regressionCandidate: tru
 
 The UI includes a local-only control for clearing regression candidate flags without deleting the rest of local history.
 
+The Memory Lane UI also includes a local-only regression candidate export for problematic feedback cases. It exports records where a feedback event is explicitly marked `regressionCandidate: true`, or where the saved rating is `wrong_context`, `bad`, or `not_sendable`.
+
+The export is metadata/minimized JSON named `nodrama-regression-candidates-YYYY-MM-DD.json`. It keeps identifiers, creation time, locale, minimized situation preview, situation hash when available, selected context, inferred context, QA summary, feedback events, ratings, variant key, and the reason the record was selected. It avoids full raw user content and does not include full generated replies.
+
+No server upload happens during this export. The browser reads localStorage, creates a local JSON `Blob`, and triggers a download without adding a backend endpoint, DB persistence, cloud sync, or telemetry call.
+
 ## Runtime Smoke Report
 
 `npm run smoke:generate -- --write-report` writes a local report to:
