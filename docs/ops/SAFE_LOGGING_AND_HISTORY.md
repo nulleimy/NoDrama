@@ -61,9 +61,23 @@ Feedback marked `wrong_context` or `bad` is flagged as `regressionCandidate: tru
 
 The UI includes a local-only control for clearing regression candidate flags without deleting the rest of local history.
 
-## CLI Smoke Report
+The Memory Lane UI also includes a local-only regression candidate export for problematic feedback cases. It exports records where a feedback event is explicitly marked `regressionCandidate: true`, or where the saved rating is `wrong_context`, `bad`, or `not_sendable`.
 
-`scripts/smoke-cli-scenarios.mjs --write-report` writes a local report to:
+The export is metadata/minimized JSON named `nodrama-regression-candidates-YYYY-MM-DD.json`. It keeps identifiers, creation time, locale, minimized situation preview, situation hash when available, selected context, inferred context, QA summary, feedback events, ratings, variant key, and the reason the record was selected. It avoids full raw user content and does not include full generated replies.
+
+No server upload happens during this export. The browser reads localStorage, creates a local JSON `Blob`, and triggers a download without adding a backend endpoint, DB persistence, cloud sync, or telemetry call.
+
+## Memory Lane Controls
+
+Memory Lane export and deletion remain browser-local. Full history export reads `nodrama.memory-lane.v1`, converts records to metadata/minimized JSON, and downloads `nodrama-memory-lane-YYYY-MM-DD.json` from the browser. It preserves record ids, creation time, locale, selected context, inferred context, QA summary, feedback events, and regression candidate markers without adding a server call.
+
+The clear-history control removes only `nodrama.memory-lane.v1` after user confirmation. It does not clear unrelated app settings or technical event logs.
+
+Private mode is stored under `nodrama.private-mode.v1`. When enabled, generation still works, but Memory Lane records and feedback events are not saved.
+
+## Runtime Smoke Report
+
+`npm run smoke:generate -- --write-report` writes a local report to:
 
 ```text
 data/runtime/smoke-results/latest.json
@@ -73,16 +87,16 @@ The report includes:
 
 - Run id and creation time.
 - API base URL.
-- Total, pass, fail, and review counts.
-- Per-case section, label, input preview, input hash, selectors, detected context, QA summary, verdict, reasons, forbidden hits, and required term misses when available.
+- Total, pass, and fail counts.
+- Per-scenario id, input preview, input hash, HTTP status, response `ok`, detected scenario family, detected domain, detected confidence, forbidden hits, and pass/fail status.
 
-The report does not store full situation text or full generated outputs. The runtime report directory is gitignored and should not be committed by default.
+The runtime smoke matrix is manual and requires a running local app server. It is not part of `npm run verify`, so deterministic verification does not depend on a live server. The report does not store full situation text or full generated outputs. The runtime report directory is gitignored and should not be committed by default.
 
 ## Delete/export Expectations
 
 Delete/export controls are local-only:
 
-- Clear history removes `nodrama.memory-lane.v1` and `nodrama.technical-event-log.v1`.
+- Clear history removes `nodrama.memory-lane.v1`.
 - Clear feedback removes feedback metadata from local records.
 - Clear regression candidates removes only regression candidate flags.
 - Export JSON creates a local browser download containing local records and privacy metadata.

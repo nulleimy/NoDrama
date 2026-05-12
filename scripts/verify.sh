@@ -111,6 +111,16 @@ if [ -f scripts/verify-feedback-reasons-v2.mjs ]; then
   node scripts/verify-feedback-reasons-v2.mjs
 fi
 
+if [ -f scripts/verify-feedback-regression-export.mjs ]; then
+  echo "==> Feedback regression export"
+  node scripts/verify-feedback-regression-export.mjs
+fi
+
+if [ -f scripts/verify-memory-lane-controls.mjs ]; then
+  echo "==> Memory Lane controls"
+  node scripts/verify-memory-lane-controls.mjs
+fi
+
 if [ -f scripts/verify-soft-neon-landing-and-feedback.mjs ]; then
   echo "==> Soft neon landing and feedback UI"
   node scripts/verify-soft-neon-landing-and-feedback.mjs
