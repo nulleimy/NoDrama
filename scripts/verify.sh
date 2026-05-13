@@ -151,6 +151,11 @@ if [ -f scripts/verify-scenario-specific-routing.mjs ]; then
   node scripts/verify-scenario-specific-routing.mjs
 fi
 
+if [ -f scripts/verify-production-persistence-plan.mjs ]; then
+  echo "==> Production persistence migration plan"
+  node scripts/verify-production-persistence-plan.mjs
+fi
+
 echo "==> Lint"
 if command -v npm >/dev/null 2>&1; then
   npm run lint
