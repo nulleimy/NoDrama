@@ -8,6 +8,12 @@ import {
 import { generateRequestSchema, type GenerateErrorResponse } from "@/lib/generateContract";
 import { generatePhraseEngineReply } from "@/lib/language/phraseEngine";
 import {
+  checkGenerateAbuseLimit,
+  getClientSignal,
+  hashClientSignal,
+  isAbuseGuardEnabled,
+} from "@/lib/security/abuseGuard";
+import {
   FREE_DAILY_LIMIT,
   getOrCreateAnonId,
   incrementDailyUsage,
@@ -29,6 +35,33 @@ export async function POST(request: Request) {
         } satisfies GenerateErrorResponse,
         { status: 400 }
       );
+    }
+
+    if (isAbuseGuardEnabled()) {
+      const clientSignal = getClientSignal(request);
+      const abuseDecision = checkGenerateAbuseLimit({
+        clientHash: hashClientSignal(clientSignal.signal),
+        route: "/api/generate",
+      });
+
+      if (!abuseDecision.allowed) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: {
+              code: "RATE_LIMITED",
+              message: "Počkej chvíli a zkus to znovu.",
+              retryAfterSeconds: abuseDecision.retryAfterSeconds,
+            },
+          },
+          {
+            status: 429,
+            headers: abuseDecision.retryAfterSeconds
+              ? { "Retry-After": String(abuseDecision.retryAfterSeconds) }
+              : undefined,
+          }
+        );
+      }
     }
 
     const creditUserId = await getCreditUserId();
