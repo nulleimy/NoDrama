@@ -146,6 +146,11 @@ if [ -f scripts/verify-scenario-specific-routing.mjs ]; then
   node scripts/verify-scenario-specific-routing.mjs
 fi
 
+
+if [ -f scripts/verify-admin-analytics-funnel-v1.mjs ]; then
+  echo "==> Admin analytics funnel v1"
+  node scripts/verify-admin-analytics-funnel-v1.mjs
+fi
 echo "==> Lint"
 if command -v npm >/dev/null 2>&1; then
   npm run lint

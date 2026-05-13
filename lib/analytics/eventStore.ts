@@ -2,7 +2,8 @@ import "server-only";
 
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import type { AnalyticsEvent, AnalyticsEventName } from "@/lib/analytics/eventContract";
+import type { AnalyticsEvent } from "@/lib/analytics/eventContract";
+import { aggregateAnalyticsEvents, analyticsEventNames, type AnalyticsEventName } from "@/lib/analytics/funnelEvents";
 
 const analyticsDir = path.join(process.cwd(), "data", "analytics");
 const analyticsFile = path.join(analyticsDir, "events.jsonl");
@@ -14,35 +15,27 @@ export type StoredAnalyticsEvent = AnalyticsEvent & {
 export type AnalyticsSummary = {
   totalEvents: number;
   counts: Record<AnalyticsEventName, number>;
-  funnel: {
-    generateToSuccessRate: number;
-    successToCopyRate: number;
-    paywallToCreditPackClickRate: number;
-  };
+  generateAttempts: number;
+  successRate: number;
+  wrongContextCount: number;
+  wrongContextRate: number;
+  notSendableCount: number;
+  notSendableRate: number;
+  freeLimitHits: number;
+  rateLimitHits: number;
+  copyClicks: number;
+  pricingCtaClicks: number;
+  topScenarioFamilies: [string, number][];
+  topFeedbackReasons: [string, number][];
   recentEvents: StoredAnalyticsEvent[];
 };
 
-const eventNames: AnalyticsEventName[] = [
-  "generate_clicked",
-  "generate_success",
-  "generate_failed",
-  "copy_reply",
-  "paywall_shown",
-  "paywall_closed",
-  "credit_pack_clicked",
-  "pricing_cta_clicked",
-];
 
 function emptyCounts(): Record<AnalyticsEventName, number> {
-  return eventNames.reduce((acc, name) => {
+  return analyticsEventNames.reduce((acc, name) => {
     acc[name] = 0;
     return acc;
   }, {} as Record<AnalyticsEventName, number>);
-}
-
-function safeRate(numerator: number, denominator: number) {
-  if (denominator <= 0) return 0;
-  return Math.round((numerator / denominator) * 1000) / 10;
 }
 
 export async function storeAnalyticsEvent(event: AnalyticsEvent) {
@@ -83,24 +76,13 @@ export async function readAnalyticsEvents(): Promise<StoredAnalyticsEvent[]> {
 
 export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
   const events = await readAnalyticsEvents();
-  const counts = emptyCounts();
-
-  for (const event of events) {
-    if (event.name in counts) {
-      counts[event.name] += 1;
-    }
-  }
+  const aggregated = aggregateAnalyticsEvents(events);
 
   return {
-    totalEvents: events.length,
-    counts,
-    funnel: {
-      generateToSuccessRate: safeRate(counts.generate_success, counts.generate_clicked),
-      successToCopyRate: safeRate(counts.copy_reply, counts.generate_success),
-      paywallToCreditPackClickRate: safeRate(
-        counts.credit_pack_clicked,
-        counts.paywall_shown
-      ),
+    ...aggregated,
+    counts: {
+      ...emptyCounts(),
+      ...aggregated.counts,
     },
     recentEvents: events.slice(-20).reverse(),
   };

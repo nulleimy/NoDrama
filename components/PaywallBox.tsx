@@ -18,7 +18,7 @@ export function PaywallBox({ onClose }: { onClose: () => void }) {
           className="rounded-2xl bg-white px-5 py-3 text-center text-sm font-bold text-black hover:bg-neutral-200"
           href="#pricing"
           onClick={() => {
-            void trackEvent("pricing_cta_clicked", {
+            void trackEvent("plan_cta_clicked", {
               cta: "primary_pro",
               source: "paywall",
             });
@@ -30,7 +30,7 @@ export function PaywallBox({ onClose }: { onClose: () => void }) {
           className="rounded-2xl border border-white/20 px-5 py-3 text-center text-sm font-bold text-white hover:bg-white/10"
           href="#credit-packs"
           onClick={() => {
-            void trackEvent("pricing_cta_clicked", {
+            void trackEvent("plan_cta_clicked", {
               cta: "secondary_credit_pack",
               source: "paywall",
             });
