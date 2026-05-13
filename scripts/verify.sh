@@ -161,6 +161,11 @@ if [ -f scripts/verify-scenario-specific-routing.mjs ]; then
   node scripts/verify-scenario-specific-routing.mjs
 fi
 
+if [ -f scripts/verify-stripe-checkout-foundation.mjs ]; then
+  echo "==> Stripe checkout foundation"
+  node scripts/verify-stripe-checkout-foundation.mjs
+fi
+
 echo "==> Lint"
 if command -v npm >/dev/null 2>&1; then
   npm run lint
