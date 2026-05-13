@@ -41,6 +41,11 @@ if [ -f scripts/verify-phrase-realizer-flexibility.mjs ]; then
   node scripts/verify-phrase-realizer-flexibility.mjs
 fi
 
+
+if [ -f scripts/verify-pricing-copy-polish.mjs ]; then
+  echo "==> Pricing copy polish"
+  node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pricing-copy-polish.mjs
+fi
 if [ -f scripts/verify-monetization-layer.mjs ]; then
   echo "==> Monetization layer"
   node scripts/verify-monetization-layer.mjs
