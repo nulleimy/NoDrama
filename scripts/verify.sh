@@ -121,6 +121,11 @@ if [ -f scripts/verify-memory-lane-controls.mjs ]; then
   node scripts/verify-memory-lane-controls.mjs
 fi
 
+if [ -f scripts/verify-account-dashboard-polish.mjs ]; then
+  echo "==> Account dashboard polish"
+  node scripts/verify-account-dashboard-polish.mjs
+fi
+
 if [ -f scripts/verify-soft-neon-landing-and-feedback.mjs ]; then
   echo "==> Soft neon landing and feedback UI"
   node scripts/verify-soft-neon-landing-and-feedback.mjs
