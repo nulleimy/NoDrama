@@ -8,6 +8,11 @@ import {
 import { generateRequestSchema, type GenerateErrorResponse } from "@/lib/generateContract";
 import { generatePhraseEngineReply } from "@/lib/language/phraseEngine";
 import {
+  buildClientSignalHash,
+  enforceGenerateAbuseLimit,
+  isAbuseGuardEnabled,
+} from "@/lib/security/abuseGuard";
+import {
   FREE_DAILY_LIMIT,
   getOrCreateAnonId,
   incrementDailyUsage,
@@ -29,6 +34,24 @@ export async function POST(request: Request) {
         } satisfies GenerateErrorResponse,
         { status: 400 }
       );
+    }
+
+    if (isAbuseGuardEnabled()) {
+      const clientSignalHash = buildClientSignalHash(request);
+      const abuseDecision = enforceGenerateAbuseLimit(clientSignalHash);
+
+      if (abuseDecision.limited) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: {
+              code: "RATE_LIMITED",
+            },
+            retryAfterSeconds: abuseDecision.retryAfterSeconds,
+          },
+          { status: 429 }
+        );
+      }
     }
 
     const creditUserId = await getCreditUserId();
