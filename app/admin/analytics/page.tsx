@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/admin/requireAdmin";
 import { getAnalyticsSummary } from "@/lib/analytics/eventStore";
 
 function StatCard({ label, value, suffix = "" }: { label: string; value: number; suffix?: string }) {
@@ -10,6 +11,7 @@ function StatCard({ label, value, suffix = "" }: { label: string; value: number;
 }
 
 export default async function AnalyticsPage() {
+  await requireAdminPage();
   const summary = await getAnalyticsSummary();
 
   return (
