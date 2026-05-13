@@ -6,9 +6,11 @@ import { creditPacks } from "@/lib/monetization";
 export function CreditPacks({
   compact = false,
   lang = "cs",
+  billingEnabled = false,
 }: {
   compact?: boolean;
   lang?: "cs" | "en";
+  billingEnabled?: boolean;
 }) {
   return (
     <div className={compact ? "grid gap-3" : "grid gap-3 md:grid-cols-3"}>
@@ -38,7 +40,10 @@ export function CreditPacks({
 
           <button
             type="button"
+            disabled={!billingEnabled}
+            aria-disabled={!billingEnabled}
             onClick={() => {
+              if (!billingEnabled) return;
               void trackEvent("credit_pack_clicked", {
                 packId: pack.id,
                 price: pack.price,
@@ -47,7 +52,7 @@ export function CreditPacks({
             }}
             className="mt-4 w-full rounded-full bg-[#171816] px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#2a2d25] focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/35"
           >
-            {lang === "cs" ? "Koupit" : "Buy pack"}
+            {billingEnabled ? (lang === "cs" ? "Koupit" : "Buy pack") : (lang === "cs" ? "Platby nejsou aktivní" : "Payments not active")}
           </button>
         </article>
       ))}

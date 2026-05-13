@@ -41,7 +41,7 @@ export function PaywallBox({ onClose }: { onClose: () => void }) {
       </div>
 
       <div id="credit-packs" className="mt-5 rounded-2xl bg-white p-4 text-black">
-        <CreditPacks compact />
+        <CreditPacks compact billingEnabled={false} />
       </div>
 
       <button

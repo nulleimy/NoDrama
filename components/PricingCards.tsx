@@ -1,6 +1,6 @@
 import { pricingPlans } from "@/lib/pricing";
 
-export function PricingCards({ lang = "cs" }: { lang?: "cs" | "en" }) {
+export function PricingCards({ lang = "cs", billingEnabled = false }: { lang?: "cs" | "en"; billingEnabled?: boolean }) {
   const ctaLabel = lang === "cs" ? "Vybrat plán" : "Choose plan";
   const freeCtaLabel = lang === "cs" ? "Vyzkoušet zdarma" : "Try for free";
 
@@ -71,8 +71,10 @@ export function PricingCards({ lang = "cs" }: { lang?: "cs" | "en" }) {
                 : "bg-[#171816] text-white hover:-translate-y-0.5 hover:bg-[#2a2d25]",
             ].join(" ")}
             type="button"
+            disabled={!billingEnabled}
+            aria-disabled={!billingEnabled}
           >
-            {plan.name === "Free" ? freeCtaLabel : ctaLabel}
+            {billingEnabled ? (plan.name === "Free" ? freeCtaLabel : ctaLabel) : (lang === "cs" ? "Platby již brzy" : "Payments coming soon")}
           </button>
         </article>
       ))}

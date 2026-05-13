@@ -2,6 +2,7 @@
 
 import { InteractiveGenerator } from "@/components/InteractiveGenerator";
 import { PricingCards } from "@/components/PricingCards";
+import { isStripeFoundationEnabled } from "@/lib/billing/stripeConfig";
 import { CreditPacks } from "@/components/CreditPacks";
 import { useLang } from "@/components/i18n/LanguageProvider";
 
@@ -121,6 +122,7 @@ const landingCopy = {
 export default function Home() {
   const { lang } = useLang();
   const isCs = lang === "cs";
+  const billingEnabled = isStripeFoundationEnabled();
   const copy = landingCopy[lang];
 
   return (
@@ -267,7 +269,7 @@ export default function Home() {
           </p>
         </div>
 
-        <PricingCards lang={lang} />
+        <PricingCards lang={lang} billingEnabled={billingEnabled} />
 
         <div
           id="credit-packs"
@@ -285,7 +287,7 @@ export default function Home() {
               : "SOS packs are for moments when you need a less awkward, more human reply without overexplaining."}
           </p>
           <div className="mt-6">
-            <CreditPacks lang={lang} />
+            <CreditPacks lang={lang} billingEnabled={billingEnabled} />
           </div>
         </div>
       </section>
