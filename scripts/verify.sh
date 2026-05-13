@@ -166,6 +166,11 @@ if [ -f scripts/verify-stripe-checkout-foundation.mjs ]; then
   node scripts/verify-stripe-checkout-foundation.mjs
 fi
 
+if [ -f scripts/verify-abuse-guard-foundation.mjs ]; then
+  echo "==> Abuse guard foundation"
+  node scripts/verify-abuse-guard-foundation.mjs
+fi
+
 echo "==> Lint"
 if command -v npm >/dev/null 2>&1; then
   npm run lint
