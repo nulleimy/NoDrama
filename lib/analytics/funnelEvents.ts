@@ -22,11 +22,12 @@ export async function logFunnelEvent(
   name: AnalyticsEventName,
   metadata: FunnelMetaInput = {}
 ) {
-  const properties: Record<string, string | number | boolean | null> = Object.fromEntries(
-    Object.entries(metadata).filter(
-      ([key, value]) => ALLOWED_KEYS.has(key) && value !== undefined
-    )
-  );
+  const properties: Record<string, string | number | boolean | null> = {};
+
+  for (const [key, value] of Object.entries(metadata)) {
+    if (!ALLOWED_KEYS.has(key) || value === undefined) continue;
+    properties[key] = value;
+  }
 
   await logAnalyticsEvent({
     name,
