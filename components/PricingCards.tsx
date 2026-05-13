@@ -1,7 +1,7 @@
 import { pricingPlans } from "@/lib/pricing";
 
 export function PricingCards({ lang = "cs" }: { lang?: "cs" | "en" }) {
-  const ctaLabel = lang === "cs" ? "Vybrat plán" : "Choose plan";
+  const ctaLabel = lang === "cs" ? "Platby již brzy" : "Payments coming soon";
   const freeCtaLabel = lang === "cs" ? "Vyzkoušet zdarma" : "Try for free";
 
   return (
@@ -73,6 +73,7 @@ export function PricingCards({ lang = "cs" }: { lang?: "cs" | "en" }) {
             </ul>
 
             <button
+              disabled={plan.name !== "Free"}
               className={[
                 "mt-8 w-full rounded-full px-4 py-3 text-sm font-black transition focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/35",
                 plan.highlighted

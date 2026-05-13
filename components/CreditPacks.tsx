@@ -38,16 +38,18 @@ export function CreditPacks({
 
           <button
             type="button"
+            disabled
             onClick={() => {
               void trackEvent("credit_pack_clicked", {
                 packId: pack.id,
                 price: pack.price,
                 credits: pack.credits,
+                disabled: true,
               });
             }}
-            className="mt-4 w-full rounded-full bg-[#171816] px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#2a2d25] focus:outline-none focus:ring-4 focus:ring-[#B8FF4D]/35"
+            className="mt-4 w-full cursor-not-allowed rounded-full bg-[#171816]/60 px-4 py-3 text-sm font-bold text-white"
           >
-            {lang === "cs" ? "Koupit" : "Buy pack"}
+            {lang === "cs" ? "Platby již brzy" : "Payments coming soon"}
           </button>
         </article>
       ))}
