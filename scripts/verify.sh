@@ -171,6 +171,11 @@ if [ -f scripts/verify-abuse-guard-foundation.mjs ]; then
   node scripts/verify-abuse-guard-foundation.mjs
 fi
 
+if [ -f scripts/verify-auth-experience-foundation.mjs ]; then
+  echo "==> Auth experience foundation"
+  node scripts/verify-auth-experience-foundation.mjs
+fi
+
 echo "==> Lint"
 if command -v npm >/dev/null 2>&1; then
   npm run lint
