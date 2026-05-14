@@ -2,35 +2,27 @@ import "server-only";
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getPersistenceRepository } from "@/lib/persistence/persistenceRepository";
 
 const billingDir = path.join(process.cwd(), "data", "billing");
-const billingEventsFile = path.join(billingDir, "events.json");
+const dedupeFile = path.join(billingDir, "handled-event-ids.json");
 
-type BillingEventRecord = {
-  eventId: string;
-  eventType: string;
-  receivedAt: string;
-  status: "accepted" | "duplicate" | "ignored";
-  metadata?: Record<string, string | number | boolean | null>;
-};
-
-type BillingDb = {
+type DedupeDb = {
   handledEventIds: string[];
-  events: BillingEventRecord[];
 };
 
-async function readBillingDb(): Promise<BillingDb> {
+async function readDedupeDb(): Promise<DedupeDb> {
   try {
-    const raw = await readFile(billingEventsFile, "utf8");
-    return JSON.parse(raw) as BillingDb;
+    const raw = await readFile(dedupeFile, "utf8");
+    return JSON.parse(raw) as DedupeDb;
   } catch {
-    return { handledEventIds: [], events: [] };
+    return { handledEventIds: [] };
   }
 }
 
-async function writeBillingDb(db: BillingDb) {
+async function writeDedupeDb(db: DedupeDb) {
   await mkdir(billingDir, { recursive: true });
-  await writeFile(billingEventsFile, `${JSON.stringify(db, null, 2)}\n`, "utf8");
+  await writeFile(dedupeFile, `${JSON.stringify(db, null, 2)}\n`, "utf8");
 }
 
 export async function recordBillingEvent(input: {
@@ -38,21 +30,23 @@ export async function recordBillingEvent(input: {
   eventType: string;
   metadata?: Record<string, string | number | boolean | null>;
 }) {
-  const db = await readBillingDb();
+  const db = await readDedupeDb();
+  const repository = getPersistenceRepository();
 
   if (db.handledEventIds.includes(input.eventId)) {
-    db.events.push({
+    await repository.recordBillingEvent({
       eventId: input.eventId,
       eventType: input.eventType,
       receivedAt: new Date().toISOString(),
       status: "duplicate",
     });
-    await writeBillingDb(db);
     return { accepted: false, duplicate: true };
   }
 
   db.handledEventIds.push(input.eventId);
-  db.events.push({
+  await writeDedupeDb(db);
+
+  await repository.recordBillingEvent({
     eventId: input.eventId,
     eventType: input.eventType,
     receivedAt: new Date().toISOString(),
@@ -60,6 +54,5 @@ export async function recordBillingEvent(input: {
     metadata: input.metadata,
   });
 
-  await writeBillingDb(db);
   return { accepted: true, duplicate: false };
 }

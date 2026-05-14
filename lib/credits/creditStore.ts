@@ -1,27 +1,7 @@
 import "server-only";
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import type { CreditAccount, CreditStatus } from "@/lib/credits/creditTypes";
-
-const creditsDir = path.join(process.cwd(), "data", "credits");
-const creditsFile = path.join(creditsDir, "credits.json");
-
-type CreditDb = Record<string, CreditAccount>;
-
-async function readCreditDb(): Promise<CreditDb> {
-  try {
-    const raw = await readFile(creditsFile, "utf8");
-    return JSON.parse(raw) as CreditDb;
-  } catch {
-    return {};
-  }
-}
-
-async function writeCreditDb(db: CreditDb) {
-  await mkdir(creditsDir, { recursive: true });
-  await writeFile(creditsFile, `${JSON.stringify(db, null, 2)}\n`, "utf8");
-}
+import { getPersistenceRepository } from "@/lib/persistence/persistenceRepository";
 
 function createAccount(userId: string): CreditAccount {
   const now = new Date().toISOString();
@@ -35,8 +15,8 @@ function createAccount(userId: string): CreditAccount {
 }
 
 export async function getCreditStatus(userId: string): Promise<CreditStatus> {
-  const db = await readCreditDb();
-  const account = db[userId] || createAccount(userId);
+  const repository = getPersistenceRepository();
+  const account = (await repository.getCreditAccount(userId)) || createAccount(userId);
 
   return {
     userId,
@@ -50,22 +30,28 @@ export async function addCredits(userId: string, amount: number) {
     throw new Error("Invalid credit amount.");
   }
 
-  const db = await readCreditDb();
-  const account = db[userId] || createAccount(userId);
+  const repository = getPersistenceRepository();
+  const account = (await repository.getCreditAccount(userId)) || createAccount(userId);
 
   account.credits += amount;
   account.updatedAt = new Date().toISOString();
 
-  db[userId] = account;
-
-  await writeCreditDb(db);
+  await repository.upsertCreditAccount(account);
+  await repository.appendCreditLedger({
+    entryId: `ledger_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+    userId,
+    delta: amount,
+    reason: "purchase",
+    source: "api",
+    createdAt: new Date().toISOString(),
+  });
 
   return getCreditStatus(userId);
 }
 
 export async function consumeCredit(userId: string) {
-  const db = await readCreditDb();
-  const account = db[userId] || createAccount(userId);
+  const repository = getPersistenceRepository();
+  const account = (await repository.getCreditAccount(userId)) || createAccount(userId);
 
   if (account.credits <= 0) {
     return {
@@ -81,9 +67,15 @@ export async function consumeCredit(userId: string) {
   account.credits -= 1;
   account.updatedAt = new Date().toISOString();
 
-  db[userId] = account;
-
-  await writeCreditDb(db);
+  await repository.upsertCreditAccount(account);
+  await repository.appendCreditLedger({
+    entryId: `ledger_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+    userId,
+    delta: -1,
+    reason: "consume",
+    source: "system",
+    createdAt: new Date().toISOString(),
+  });
 
   return {
     consumed: true,
