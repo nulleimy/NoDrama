@@ -171,6 +171,11 @@ if [ -f scripts/verify-abuse-guard-foundation.mjs ]; then
   node scripts/verify-abuse-guard-foundation.mjs
 fi
 
+
+if [ -f scripts/verify-auth-user-credit-ledger.mjs ]; then
+  echo "==> Auth user credit ledger"
+  node scripts/verify-auth-user-credit-ledger.mjs
+fi
 echo "==> Lint"
 if command -v npm >/dev/null 2>&1; then
   npm run lint

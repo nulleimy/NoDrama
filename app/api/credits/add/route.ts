@@ -1,23 +1,27 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { addCredits } from "@/lib/credits/creditStore";
-import { getCreditUserId } from "@/lib/credits/userIdentity";
+import { getCreditIdentity } from "@/lib/credits/userIdentity";
 
 const addCreditsSchema = z.object({
   amount: z.number().int().positive().max(10000),
 });
 
-function isLocalDevCreditGrantEnabled() {
-  return process.env.NODE_ENV !== "production" && process.env.NODRAMA_ENABLE_DEV_CREDIT_GRANTS === "1";
+function isDevCreditGrantEnabled() {
+  const isTest = process.env.NODRAMA_TEST_MODE === "true";
+  const allowDev = process.env.NODRAMA_ALLOW_DEV_CREDIT_GRANTS === "true";
+  const legacyAllowDev = process.env.NODRAMA_ENABLE_DEV_CREDIT_GRANTS === "1";
+  const notProduction = process.env.NODE_ENV !== "production";
+  return notProduction && (isTest || allowDev || legacyAllowDev);
 }
 
 export async function POST(request: Request) {
-  if (!isLocalDevCreditGrantEnabled()) {
+  if (!isDevCreditGrantEnabled()) {
     return NextResponse.json(
       {
         ok: false,
         code: "CREDIT_GRANT_DISABLED",
-        message: "Manual credit grants are disabled outside explicit local development mode.",
+        message: "Manual credit grants are disabled. Enable NODRAMA_TEST_MODE=true or NODRAMA_ALLOW_DEV_CREDIT_GRANTS=true.",
       },
       { status: 403 }
     );
@@ -37,8 +41,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const userId = await getCreditUserId();
-  const status = await addCredits(userId, parsed.data.amount);
+  const identity = await getCreditIdentity();
+  const status = await addCredits(identity.accountKey, parsed.data.amount);
 
   return NextResponse.json({
     ok: true,
