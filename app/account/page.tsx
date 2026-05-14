@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { AuthButtons } from "@/components/AuthButtons";
 import { CreditStatusCard } from "@/components/CreditStatusCard";
+import { UserSessionCard } from "@/components/UserSessionCard";
 
 export default function AccountPage() {
   return (
@@ -15,16 +15,15 @@ export default function AccountPage() {
           browser, and what is still planned.
         </p>
 
-        <div className="mt-8 grid gap-4">
-          <AuthButtons />
-        </div>
-
         <section className="mt-8 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black tracking-tight">1) Stav účtu / Account status</h2>
           <p className="mt-3 text-sm leading-7 text-neutral-700">
-            Přihlášení připravuje návrat uživatele, historii a navázání na budoucí rozšíření. Login currently supports
-            account continuity and future extensions, but it does not unlock fake subscriptions or hidden charges.
+            Login supports account continuity and a clean return experience, while Memory Lane remains local-first
+            unless explicit sync is added later.
           </p>
+          <div className="mt-4 grid gap-4">
+            <UserSessionCard />
+          </div>
         </section>
 
         <section className="mt-4 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -68,6 +67,7 @@ export default function AccountPage() {
             </Link>
           </div>
         </section>
+
 
         <section className="mt-4 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black tracking-tight">5) Next steps / Upcoming features</h2>
