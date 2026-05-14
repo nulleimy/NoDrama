@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
-import { getCreditStatus } from "@/lib/credits/creditStore";
-import { getCreditUserId } from "@/lib/credits/userIdentity";
+import { buildCreditStatus } from "@/lib/credits/creditLedger";
+import { getCreditIdentity } from "@/lib/credits/userIdentity";
 
 export async function GET() {
-  const userId = await getCreditUserId();
-  const status = await getCreditStatus(userId);
+  const identity = await getCreditIdentity();
+  const status = await buildCreditStatus({ accountKey: identity.accountKey, accountMode: identity.accountMode });
 
   return NextResponse.json({
     ok: true,
-    status,
+    status: {
+      userId: identity.accountKey,
+      credits: status.credits,
+      hasCredits: status.hasCredits,
+      accountMode: status.accountMode,
+      balance: status.balance,
+      ledgerAvailable: status.ledgerAvailable,
+      planId: status.planId,
+      situationUnitCopy: status.situationUnitCopy,
+    },
   });
 }

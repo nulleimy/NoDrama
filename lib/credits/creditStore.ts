@@ -1,47 +1,19 @@
 import "server-only";
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-import type { CreditAccount, CreditStatus } from "@/lib/credits/creditTypes";
-
-const creditsDir = path.join(process.cwd(), "data", "credits");
-const creditsFile = path.join(creditsDir, "credits.json");
-
-type CreditDb = Record<string, CreditAccount>;
-
-async function readCreditDb(): Promise<CreditDb> {
-  try {
-    const raw = await readFile(creditsFile, "utf8");
-    return JSON.parse(raw) as CreditDb;
-  } catch {
-    return {};
-  }
-}
-
-async function writeCreditDb(db: CreditDb) {
-  await mkdir(creditsDir, { recursive: true });
-  await writeFile(creditsFile, `${JSON.stringify(db, null, 2)}\n`, "utf8");
-}
-
-function createAccount(userId: string): CreditAccount {
-  const now = new Date().toISOString();
-
-  return {
-    userId,
-    credits: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
+import { randomUUID } from "node:crypto";
+import type { CreditStatus } from "@/lib/credits/creditTypes";
+import { buildCreditStatus, debitCredits, grantCredits } from "@/lib/credits/creditLedger";
 
 export async function getCreditStatus(userId: string): Promise<CreditStatus> {
-  const db = await readCreditDb();
-  const account = db[userId] || createAccount(userId);
+  const status = await buildCreditStatus({
+    accountKey: userId,
+    accountMode: userId.startsWith("user:") ? "authenticated" : "anonymous",
+  });
 
   return {
     userId,
-    credits: account.credits,
-    hasCredits: account.credits > 0,
+    credits: status.credits,
+    hasCredits: status.hasCredits,
   };
 }
 
@@ -50,47 +22,23 @@ export async function addCredits(userId: string, amount: number) {
     throw new Error("Invalid credit amount.");
   }
 
-  const db = await readCreditDb();
-  const account = db[userId] || createAccount(userId);
-
-  account.credits += amount;
-  account.updatedAt = new Date().toISOString();
-
-  db[userId] = account;
-
-  await writeCreditDb(db);
+  await grantCredits({
+    accountKey: userId,
+    amount,
+    reason: "manual_dev_grant",
+    source: "api",
+    referenceId: `manual:${userId}`,
+    idempotencyKey: `manual:${userId}:${amount}:${randomUUID()}`,
+  });
 
   return getCreditStatus(userId);
 }
 
 export async function consumeCredit(userId: string) {
-  const db = await readCreditDb();
-  const account = db[userId] || createAccount(userId);
+  const referenceId = `generation:${Date.now()}`;
+  const idempotencyKey = `${referenceId}:${userId}`;
+  const result = await debitCredits({ accountKey: userId, referenceId, idempotencyKey, amount: 1 });
 
-  if (account.credits <= 0) {
-    return {
-      consumed: false,
-      status: {
-        userId,
-        credits: account.credits,
-        hasCredits: false,
-      },
-    };
-  }
-
-  account.credits -= 1;
-  account.updatedAt = new Date().toISOString();
-
-  db[userId] = account;
-
-  await writeCreditDb(db);
-
-  return {
-    consumed: true,
-    status: {
-      userId,
-      credits: account.credits,
-      hasCredits: account.credits > 0,
-    },
-  };
+  const status = await getCreditStatus(userId);
+  return { consumed: result.debited, status };
 }

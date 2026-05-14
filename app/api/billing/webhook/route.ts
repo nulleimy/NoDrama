@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { recordBillingEvent } from "@/lib/billing/billingEventStore";
+import { grantCredits } from "@/lib/credits/creditLedger";
 import { getMissingStripeConfig, isStripeCheckoutFoundationEnabled } from "@/lib/billing/stripeConfig";
 
 export async function POST(req: Request) {
@@ -25,6 +26,18 @@ export async function POST(req: Request) {
   }
 
   const result = await recordBillingEvent({ eventId, eventType });
+
+  if (result.accepted && eventType.startsWith("checkout.session")) {
+    await grantCredits({
+      accountKey: "anon:local",
+      amount: 0 + 4,
+      reason: "stripe_pack_purchase",
+      source: "stripe_webhook",
+      referenceId: eventId,
+      idempotencyKey: `${eventId}:anon:local:pack`,
+      metadata: { note: "MVP placeholder mapping; bind to authenticated user in DB migration." },
+    });
+  }
 
   return NextResponse.json({ ok: true, accepted: result.accepted, duplicate: result.duplicate });
 }
