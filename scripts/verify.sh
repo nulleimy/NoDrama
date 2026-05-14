@@ -152,6 +152,12 @@ if [ -f scripts/verify-safe-logging-core.mjs ]; then
 fi
 
 
+
+if [ -f scripts/verify-persistence-adapter-foundation.mjs ]; then
+  echo "==> Persistence adapter foundation"
+  node scripts/verify-persistence-adapter-foundation.mjs
+fi
+
 if [ -f scripts/verify-production-persistence-plan.mjs ]; then
   echo "==> Production persistence plan"
   node scripts/verify-production-persistence-plan.mjs
