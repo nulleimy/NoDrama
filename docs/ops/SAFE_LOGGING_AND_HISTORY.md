@@ -61,6 +61,14 @@ Feedback marked `wrong_context` or `bad` is flagged as `regressionCandidate: tru
 
 The UI includes a local-only control for clearing regression candidate flags without deleting the rest of local history.
 
+## Memory Lane Controls
+
+Memory Lane export and deletion remain browser-local. Full history export reads `nodrama.memory-lane.v1`, converts records to metadata/minimized JSON, and downloads `nodrama-memory-lane-YYYY-MM-DD.json` from the browser. It preserves record ids, creation time, locale, selected context, inferred context, QA summary, feedback events, and regression candidate markers without adding a server call.
+
+The clear-history control removes only `nodrama.memory-lane.v1` after user confirmation. It does not clear unrelated app settings or technical event logs.
+
+Private mode is stored under `nodrama.private-mode.v1`. When enabled, generation still works, but Memory Lane records and feedback events are not saved.
+
 ## Runtime Smoke Report
 
 `npm run smoke:generate -- --write-report` writes a local report to:
@@ -82,7 +90,7 @@ The runtime smoke matrix is manual and requires a running local app server. It i
 
 Delete/export controls are local-only:
 
-- Clear history removes `nodrama.memory-lane.v1` and `nodrama.technical-event-log.v1`.
+- Clear history removes `nodrama.memory-lane.v1`.
 - Clear feedback removes feedback metadata from local records.
 - Clear regression candidates removes only regression candidate flags.
 - Export JSON creates a local browser download containing local records and privacy metadata.

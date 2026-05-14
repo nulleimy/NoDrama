@@ -46,6 +46,11 @@ if [ -f scripts/verify-monetization-layer.mjs ]; then
   node scripts/verify-monetization-layer.mjs
 fi
 
+if [ -f scripts/verify-account-dashboard-polish.mjs ]; then
+  echo "==> Account dashboard polish"
+  node scripts/verify-account-dashboard-polish.mjs
+fi
+
 if [ -f scripts/verify-nodrama-enterprise.mjs ]; then
   echo "==> NoDrama Enterprise"
   node scripts/verify-nodrama-enterprise.mjs
@@ -109,6 +114,11 @@ fi
 if [ -f scripts/verify-feedback-reasons-v2.mjs ]; then
   echo "==> Feedback reasons v2"
   node scripts/verify-feedback-reasons-v2.mjs
+fi
+
+if [ -f scripts/verify-memory-lane-controls.mjs ]; then
+  echo "==> Memory Lane controls"
+  node scripts/verify-memory-lane-controls.mjs
 fi
 
 if [ -f scripts/verify-soft-neon-landing-and-feedback.mjs ]; then

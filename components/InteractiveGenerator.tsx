@@ -11,6 +11,7 @@ import {
   type ReplyQaResult,
   type SelectorSource,
 } from "@/lib/nodrama/replyIntelligence";
+import { createSituationHash, createSituationPreview } from "@/lib/nodrama/safeLogging";
 import { publicGeneratorTaxonomyControls } from "@/lib/nodrama/uiTaxonomyControls.mjs";
 
 type SelectorGroup = "tone" | "relationship" | "channel" | "strategy";
@@ -49,6 +50,7 @@ type GenerationMemoryRecord = {
   createdAt: string;
   language: "cs" | "en";
   userInputPreview: string;
+  situationHash?: string;
   selectedContext: {
     toneId: string;
     relationshipId: string;
@@ -71,6 +73,19 @@ type GenerationMemoryRecord = {
     note?: string;
   };
   feedbackEvents?: FeedbackEvent[];
+};
+
+type MemoryLaneExportItem = {
+  id: string;
+  createdAt: string;
+  language: "cs" | "en";
+  situationPreview: string;
+  situationHash?: string;
+  selectedContext: GenerationMemoryRecord["selectedContext"];
+  inferredContext: GenerationMemoryRecord["inferredContext"];
+  qa?: ReturnType<typeof summarizeMemoryQa>;
+  feedbackEvents: FeedbackEvent[];
+  regressionCandidate: boolean;
 };
 
 const primaryGroups: SelectorGroup[] = ["tone", "relationship", "strategy"];
@@ -115,6 +130,19 @@ const copy = {
     lowConfidence: "Nízká jistota — zkontroluj výběr",
     conflictTitle: "Možný konflikt záměru",
     feedbackSaved: "Zpětná vazba uložena do Memory Lane",
+    memoryLane: {
+      title: "Memory Lane",
+      exportHistory: "Exportovat historii",
+      clearHistory: "Smazat historii",
+      privateMode: "Soukromý režim",
+      notSaved: "Historie se neukládá",
+      browserOnly: "Historie uložena jen v tomto prohlížeči",
+      privateStatus: "Soukromý režim — historie se neukládá",
+      exported: "Historie exportována",
+      cleared: "Historie smazána",
+      empty: "Historie je prázdná.",
+      clearConfirm: "Smazat lokální Memory Lane historii v tomto prohlížeči?",
+    },
     feedback: {
       title: "Sedí ti to?",
       labels: {
@@ -172,6 +200,19 @@ const copy = {
     lowConfidence: "Low confidence — review selectors",
     conflictTitle: "Possible intent conflict",
     feedbackSaved: "Feedback saved to Memory Lane",
+    memoryLane: {
+      title: "Memory Lane",
+      exportHistory: "Export history",
+      clearHistory: "Clear history",
+      privateMode: "Private mode",
+      notSaved: "History is not saved",
+      browserOnly: "History is stored only in this browser",
+      privateStatus: "Private mode — history is not saved",
+      exported: "History exported",
+      cleared: "History cleared",
+      empty: "History is empty.",
+      clearConfirm: "Clear local Memory Lane history in this browser?",
+    },
     feedback: {
       title: "Does this feel right?",
       labels: {
@@ -235,6 +276,8 @@ export function InteractiveGenerator() {
   const [selectedReplyVariant, setSelectedReplyVariant] = useState<ResultKey | null>(null);
   const [feedbackAction, setFeedbackAction] = useState<FeedbackAction | null>(null);
   const [selectedFeedback, setSelectedFeedback] = useState<Partial<Record<ResultKey, FeedbackAction>>>({});
+  const [privateMode, setPrivateMode] = useState(readPrivateMode);
+  const [memoryMessage, setMemoryMessage] = useState<string | null>(null);
   const [tuningAction] = useState<TuningAction | null>(null);
 
   useEffect(() => {
@@ -326,10 +369,16 @@ export function InteractiveGenerator() {
         const qa = (data.meta as { replyIntelligence?: { qaByVariant?: Record<string, ReplyQaResult> } } | undefined)
           ?.replyIntelligence?.qaByVariant?.naturalReply;
         setQaSummary(qa || null);
+        if (privateMode) {
+          setMemoryId(null);
+          setMemoryMessage(t.memoryLane.privateStatus);
+          return;
+        }
         const saved = saveMemoryRecord({
           createdAt: new Date().toISOString(),
           language: lang,
-          userInputPreview: input.slice(0, 240),
+          userInputPreview: createSituationPreview(input, 120),
+          situationHash: createSituationHash(input),
           selectedContext: {
             toneId: selected.tone,
             relationshipId: selected.relationship,
@@ -483,6 +532,64 @@ export function InteractiveGenerator() {
           {isLoading ? t.loading : t.generate}
         </button>
 
+        <div className="flex flex-col gap-2 rounded-[1.25rem] border border-white/10 bg-white/[0.045] p-4 text-xs text-[#B9C0E0] sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <p className="font-bold text-[#F7F8FF]">{t.memoryLane.title}</p>
+            <p>{privateMode ? t.memoryLane.notSaved : t.memoryLane.browserOnly}</p>
+            {privateMode && (
+              <p className="font-bold text-[#FFD6A5]" role="status">
+                {t.memoryLane.privateStatus}
+              </p>
+            )}
+            {memoryMessage && (
+              <p className="mt-1" role="status">
+                {memoryMessage}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <label className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-xs font-black text-[#F7F8FF]">
+              <input
+                type="checkbox"
+                checked={privateMode}
+                onChange={(event) => {
+                  const next = event.target.checked;
+                  setPrivateMode(next);
+                  writePrivateMode(next);
+                  if (next) setMemoryId(null);
+                  setMemoryMessage(next ? t.memoryLane.privateStatus : null);
+                }}
+                className="h-4 w-4 accent-[#35E0C3]"
+              />
+              {t.memoryLane.privateMode}
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                const exported = exportMemoryLane();
+                setMemoryMessage(
+                  exported > 0 ? `${t.memoryLane.exported}: ${exported}` : t.memoryLane.empty
+                );
+              }}
+              className="rounded-full border border-[#35E0C3]/40 bg-[#35E0C3]/10 px-4 py-2 text-xs font-black text-[#9CE7D9] transition hover:border-[#35E0C3]/75 hover:bg-[#35E0C3]/16 focus:outline-none focus:ring-4 focus:ring-[#35E0C3]/30"
+            >
+              {t.memoryLane.exportHistory}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!window.confirm(t.memoryLane.clearConfirm)) return;
+                clearMemoryLane();
+                setMemoryId(null);
+                setMemoryMessage(t.memoryLane.cleared);
+              }}
+              className="rounded-full border border-[#FF4FB3]/35 bg-[#FF4FB3]/10 px-4 py-2 text-xs font-black text-[#FFD6EC] transition hover:border-[#FF4FB3]/70 hover:bg-[#FF4FB3]/16 focus:outline-none focus:ring-4 focus:ring-[#FF4FB3]/25"
+            >
+              {t.memoryLane.clearHistory}
+            </button>
+          </div>
+        </div>
+
         {error && (
           <div
             role="alert"
@@ -518,6 +625,7 @@ export function InteractiveGenerator() {
                     setSelectedReplyVariant(key);
                     setFeedbackAction(action);
                     if (action === "try_again") return;
+                    if (privateMode) return;
                     if (!memoryId) return;
                     const rating = resolveFeedbackRatingFromChip(action, qaSummary);
                     updateMemoryFeedback(memoryId, key, rating);
@@ -831,6 +939,7 @@ function getSelectedOption(group: SelectorGroup, id: string) {
 }
 
 const MEMORY_KEY = "nodrama.memory-lane.v1";
+const PRIVATE_MODE_KEY = "nodrama.private-mode.v1";
 
 function saveMemoryRecord(
   payload: Omit<GenerationMemoryRecord, "id">
@@ -839,6 +948,8 @@ function saveMemoryRecord(
     ...payload,
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   };
+  if (readPrivateMode()) return record;
+
   const current = loadMemoryRecords();
   localStorage.setItem(MEMORY_KEY, JSON.stringify([record, ...current].slice(0, 120)));
   return record;
@@ -869,11 +980,13 @@ function resolveFeedbackRatingFromChip(
 }
 
 function updateMemoryFeedback(id: string, variantKey: ResultKey, rating: FeedbackRating) {
+  if (readPrivateMode()) return;
+
   const feedbackEvent: FeedbackEvent = {
     rating,
     variantKey,
     createdAt: new Date().toISOString(),
-    regressionCandidate: rating === "wrong_context" ? true : undefined,
+    regressionCandidate: isProblemFeedbackRating(rating) ? true : undefined,
   };
   const updated = loadMemoryRecords().map((record) =>
     record.id === id
@@ -888,6 +1001,8 @@ function updateMemoryFeedback(id: string, variantKey: ResultKey, rating: Feedbac
 }
 
 function loadMemoryRecords(): GenerationMemoryRecord[] {
+  if (typeof localStorage === "undefined") return [];
+
   const raw = localStorage.getItem(MEMORY_KEY);
   if (!raw) return [];
 
@@ -897,4 +1012,84 @@ function loadMemoryRecords(): GenerationMemoryRecord[] {
   } catch {
     return [];
   }
+}
+
+function clearMemoryLane(): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.removeItem(MEMORY_KEY);
+}
+
+function readPrivateMode(): boolean {
+  if (typeof localStorage === "undefined") return false;
+  return localStorage.getItem(PRIVATE_MODE_KEY) === "true";
+}
+
+function writePrivateMode(enabled: boolean): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(PRIVATE_MODE_KEY, enabled ? "true" : "false");
+}
+
+function isProblemFeedbackRating(rating?: FeedbackRating): boolean {
+  return rating === "wrong_context" || rating === "bad" || rating === "not_sendable";
+}
+
+function isRegressionCandidate(record: GenerationMemoryRecord): boolean {
+  return (
+    record.feedbackEvents?.some((event) => event.regressionCandidate === true) ||
+    isProblemFeedbackRating(record.userFeedback?.rating) ||
+    record.feedbackEvents?.some((event) => isProblemFeedbackRating(event.rating)) ||
+    false
+  );
+}
+
+function summarizeMemoryQa(qa?: ReplyQaResult) {
+  if (!qa) return undefined;
+
+  return {
+    verdict: qa.verdict,
+    contextFit: qa.contextFit,
+    toneFit: qa.toneFit,
+    strategyFit: qa.strategyFit,
+    sendability: qa.sendability,
+    mismatchType: qa.mismatchType,
+    reasons: qa.reasons,
+    forbiddenTermsHit: qa.forbiddenTermsHit,
+  };
+}
+
+function toMemoryLaneExportItem(record: GenerationMemoryRecord): MemoryLaneExportItem {
+  return {
+    id: record.id,
+    createdAt: record.createdAt,
+    language: record.language,
+    situationPreview: createSituationPreview(record.userInputPreview || "", 96),
+    situationHash: record.situationHash,
+    selectedContext: record.selectedContext,
+    inferredContext: record.inferredContext,
+    qa: summarizeMemoryQa(record.qa),
+    feedbackEvents: record.feedbackEvents || [],
+    regressionCandidate: isRegressionCandidate(record),
+  };
+}
+
+function downloadJson(filename: string, payload: unknown): void {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+export function exportMemoryLane(): number {
+  const records = loadMemoryRecords().map(toMemoryLaneExportItem);
+  if (!records.length) return 0;
+
+  downloadJson(`nodrama-memory-lane-${new Date().toISOString().slice(0, 10)}.json`, records);
+  return records.length;
 }
