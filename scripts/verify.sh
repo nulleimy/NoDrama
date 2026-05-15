@@ -176,6 +176,12 @@ if [ -f scripts/verify-auth-user-credit-ledger.mjs ]; then
   echo "==> Auth user credit ledger"
   node scripts/verify-auth-user-credit-ledger.mjs
 fi
+
+if [ -f scripts/verify-cloudflare-deploy.mjs ]; then
+  echo "==> Cloudflare deploy foundation"
+  node scripts/verify-cloudflare-deploy.mjs
+fi
+
 echo "==> Lint"
 if command -v npm >/dev/null 2>&1; then
   npm run lint
