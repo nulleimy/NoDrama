@@ -176,10 +176,49 @@ if [ -f scripts/verify-auth-user-credit-ledger.mjs ]; then
   echo "==> Auth user credit ledger"
   node scripts/verify-auth-user-credit-ledger.mjs
 fi
+if [ -f scripts/verify-production-persistence-boundary.mjs ]; then
+  echo "==> Production persistence boundary"
+  node scripts/verify-production-persistence-boundary.mjs
+fi
 
-if [ -f scripts/verify-cloudflare-deploy.mjs ]; then
-  echo "==> Cloudflare deploy foundation"
-  node scripts/verify-cloudflare-deploy.mjs
+if [ -f scripts/verify-supabase-persistence-foundation.mjs ]; then
+  echo "==> Supabase persistence foundation"
+  node scripts/verify-supabase-persistence-foundation.mjs
+fi
+
+if [ -f scripts/smoke-persistence-backend-routing.mjs ]; then
+  echo "==> Persistence backend routing smoke"
+  node scripts/smoke-persistence-backend-routing.mjs
+fi
+
+if [ -f scripts/verify-atomic-credit-rpc.mjs ]; then
+  echo "==> Atomic credit debit RPC"
+  node scripts/verify-atomic-credit-rpc.mjs
+fi
+
+if [ -f scripts/verify-atomic-credit-grants.mjs ]; then
+  echo "==> Atomic credit grants"
+  node scripts/verify-atomic-credit-grants.mjs
+fi
+
+if [ -f scripts/verify-stripe-webhook-fulfillment.mjs ]; then
+  echo "==> Stripe webhook fulfillment"
+  node scripts/verify-stripe-webhook-fulfillment.mjs
+fi
+
+if [ -f scripts/verify-stripe-checkout-session.mjs ]; then
+  echo "==> Stripe checkout session creation"
+  node scripts/verify-stripe-checkout-session.mjs
+fi
+
+if [ -f scripts/verify-production-readiness.mjs ]; then
+  echo "==> Production readiness gate"
+  node scripts/verify-production-readiness.mjs
+fi
+
+if [ -f scripts/check-production-promotion-lock.mjs ]; then
+  echo "==> Production promotion lock"
+  node scripts/check-production-promotion-lock.mjs
 fi
 
 echo "==> Lint"

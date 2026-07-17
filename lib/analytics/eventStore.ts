@@ -3,6 +3,14 @@ import "server-only";
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { AnalyticsEvent, AnalyticsEventName } from "@/lib/analytics/eventContract";
+import {
+  readSupabaseAnalyticsEvents,
+  storeSupabaseAnalyticsEvent,
+} from "@/lib/analytics/supabaseEventStore";
+import {
+  assertLocalJsonPersistence,
+  getPersistenceBackend,
+} from "@/lib/persistence/persistenceMode";
 
 const analyticsDir = path.join(process.cwd(), "data", "analytics");
 const analyticsFile = path.join(analyticsDir, "events.jsonl");
@@ -46,6 +54,11 @@ function safeRate(numerator: number, denominator: number) {
 }
 
 export async function storeAnalyticsEvent(event: AnalyticsEvent) {
+  if (getPersistenceBackend() === "supabase") {
+    return storeSupabaseAnalyticsEvent(event);
+  }
+
+  assertLocalJsonPersistence("Analytics event store");
   await mkdir(analyticsDir, { recursive: true });
 
   const storedEvent: StoredAnalyticsEvent = {
@@ -68,6 +81,12 @@ function parseAnalyticsLine(line: string): StoredAnalyticsEvent | null {
 }
 
 export async function readAnalyticsEvents(): Promise<StoredAnalyticsEvent[]> {
+  if (getPersistenceBackend() === "supabase") {
+    return readSupabaseAnalyticsEvents();
+  }
+
+  assertLocalJsonPersistence("Analytics event store");
+
   try {
     const raw = await readFile(analyticsFile, "utf8");
 

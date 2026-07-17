@@ -16,7 +16,9 @@
     "verify:content-depth": "node scripts/verify-nodrama-content-depth.mjs",
     "verify:taxonomy-schema-v2": "node scripts/verify-taxonomy-schema-v2.mjs",
     "verify:micro-situation-seed-v1": "node scripts/verify-micro-situation-seed-v1.mjs",
-    "verify:nodrama": "node scripts/verify-nodrama-enterprise.mjs"
+    "verify:nodrama": "node scripts/verify-nodrama-enterprise.mjs",
+    "release:gate": "node scripts/verify-release-gate.mjs",
+    "release:gate:strict": "NODRAMA_RELEASE_GATE_STRICT=true node scripts/verify-release-gate.mjs"
   },
   "dependencies": {
     "next": "^16.2.4",

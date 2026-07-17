@@ -39,3 +39,5 @@ data/credits/*.json
 
 # Local runtime reports
 /data/runtime/
+.env.local
+supabase/.temp/

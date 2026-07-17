@@ -1,6 +1,6 @@
 import "server-only";
 
-const requiredKeys = [
+const checkoutFoundationKeys = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
   "STRIPE_PRICE_STARTER_MONTHLY",
@@ -12,12 +12,28 @@ const requiredKeys = [
   "NEXT_PUBLIC_APP_URL",
 ] as const;
 
-type StripeConfigKey = (typeof requiredKeys)[number];
+const webhookFulfillmentKeys = [
+  "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PRICE_CREDITS_25",
+  "STRIPE_PRICE_CREDITS_100",
+  "STRIPE_PRICE_PRO_MONTHLY",
+] as const;
 
-export function getMissingStripeConfig(): StripeConfigKey[] {
-  return requiredKeys.filter((key) => !process.env[key]?.trim());
+type CheckoutFoundationKey = (typeof checkoutFoundationKeys)[number];
+type WebhookFulfillmentKey = (typeof webhookFulfillmentKeys)[number];
+
+export function getMissingStripeConfig(): CheckoutFoundationKey[] {
+  return checkoutFoundationKeys.filter((key) => !process.env[key]?.trim());
 }
 
 export function isStripeCheckoutFoundationEnabled(): boolean {
   return getMissingStripeConfig().length === 0;
+}
+
+export function getMissingStripeWebhookFulfillmentConfig(): WebhookFulfillmentKey[] {
+  return webhookFulfillmentKeys.filter((key) => !process.env[key]?.trim());
+}
+
+export function isStripeWebhookFulfillmentEnabled(): boolean {
+  return getMissingStripeWebhookFulfillmentConfig().length === 0;
 }
