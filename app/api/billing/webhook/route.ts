@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 const SECURITY_HOLD_MESSAGE =
   "Stripe fulfillment is disabled until signed raw-body verification, durable transactional persistence, and authenticated account binding are active.";
 
