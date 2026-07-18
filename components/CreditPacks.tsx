@@ -1,7 +1,13 @@
 "use client";
 
-import { trackEvent } from "@/lib/analytics/trackEvent";
+import { CheckoutButton } from "@/components/CheckoutButton";
 import { creditPacks } from "@/lib/monetization";
+
+const packSku: Record<string, string> = {
+  pack_sos: "pack_sos",
+  pack_mini: "pack_mini",
+  pack_klid: "pack_klid",
+};
 
 export function CreditPacks({
   compact = false,
@@ -36,21 +42,13 @@ export function CreditPacks({
             {pack.credits} situace · {pack.validity}
           </p>
 
-          <button
-            type="button"
-            disabled
-            onClick={() => {
-              void trackEvent("credit_pack_clicked", {
-                packId: pack.id,
-                price: pack.price,
-                credits: pack.credits,
-                disabled: true,
-              });
-            }}
-            className="mt-4 w-full cursor-not-allowed rounded-full bg-[#171816]/60 px-4 py-3 text-sm font-bold text-white"
+          <CheckoutButton
+            sku={packSku[pack.id] || pack.id}
+            eventSource="credit_pack"
+            className="w-full rounded-full bg-[#171816] px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#2a2d25] disabled:cursor-wait disabled:opacity-70"
           >
-            {lang === "cs" ? "Platby již brzy" : "Payments coming soon"}
-          </button>
+            {lang === "cs" ? "Koupit balíček" : "Buy pack"}
+          </CheckoutButton>
         </article>
       ))}
     </div>

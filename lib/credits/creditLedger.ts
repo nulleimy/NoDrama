@@ -3,6 +3,16 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  assertLocalJsonPersistence,
+  getPersistenceBackend,
+} from "@/lib/persistence/persistenceMode";
+import {
+  debitSupabaseCreditsAtomically,
+  grantSupabaseCreditsAtomically,
+  insertSupabaseCreditLedgerEntry,
+  readSupabaseCreditLedgerEntries,
+} from "@/lib/credits/supabaseCreditLedger";
 
 const creditsDir = path.join(process.cwd(), "data", "credits");
 const ledgerFile = path.join(creditsDir, "ledger.json");
@@ -41,7 +51,9 @@ function hashUserId(userId: string) {
   return createHash("sha256").update(userId).digest("hex");
 }
 
-async function readCreditLedgerDb(): Promise<CreditLedgerDb> {
+async function readLocalCreditLedgerDb(): Promise<CreditLedgerDb> {
+  assertLocalJsonPersistence("Credit ledger");
+
   try {
     const raw = await readFile(ledgerFile, "utf8");
     const parsed = JSON.parse(raw) as CreditLedgerDb;
@@ -51,7 +63,9 @@ async function readCreditLedgerDb(): Promise<CreditLedgerDb> {
   }
 }
 
-async function writeCreditLedgerDb(db: CreditLedgerDb) {
+async function writeLocalCreditLedgerDb(db: CreditLedgerDb) {
+  assertLocalJsonPersistence("Credit ledger");
+
   await mkdir(creditsDir, { recursive: true });
   await writeFile(ledgerFile, `${JSON.stringify(db, null, 2)}\n`, "utf8");
 }
@@ -62,7 +76,11 @@ export function getCreditAccountKey(input: { userId?: string | null; anonId?: st
 }
 
 export async function getCreditLedgerEntries(accountKey: string) {
-  const db = await readCreditLedgerDb();
+  if (getPersistenceBackend() === "supabase") {
+    return readSupabaseCreditLedgerEntries(accountKey);
+  }
+
+  const db = await readLocalCreditLedgerDb();
   return db.entries.filter((entry) => entry.accountKey === accountKey);
 }
 
@@ -72,7 +90,11 @@ export async function getCurrentCreditBalance(accountKey: string) {
 }
 
 export async function appendCreditLedgerEntry(entry: Omit<CreditLedgerEntry, "id" | "createdAt">) {
-  const db = await readCreditLedgerDb();
+  if (getPersistenceBackend() === "supabase") {
+    return insertSupabaseCreditLedgerEntry(entry);
+  }
+
+  const db = await readLocalCreditLedgerDb();
   const duplicate = db.entries.find((item) => item.idempotencyKey === entry.idempotencyKey);
   if (duplicate) return duplicate;
 
@@ -83,7 +105,7 @@ export async function appendCreditLedgerEntry(entry: Omit<CreditLedgerEntry, "id
   };
 
   db.entries.push(next);
-  await writeCreditLedgerDb(db);
+  await writeLocalCreditLedgerDb(db);
   return next;
 }
 
@@ -99,10 +121,26 @@ export async function grantCredits(input: {
 }) {
   if (!ALLOWED_REASONS.includes(input.reason) || input.amount <= 0) throw new Error("Invalid grant input.");
 
+  const amount = Math.abs(Math.trunc(input.amount));
+  const userIdHash = input.userId ? hashUserId(input.userId) : null;
+
+  if (getPersistenceBackend() === "supabase") {
+    return grantSupabaseCreditsAtomically({
+      accountKey: input.accountKey,
+      userIdHash,
+      amount,
+      reason: input.reason,
+      source: input.source,
+      referenceId: input.referenceId,
+      metadata: input.metadata,
+      idempotencyKey: input.idempotencyKey,
+    });
+  }
+
   return appendCreditLedgerEntry({
     accountKey: input.accountKey,
-    userIdHash: input.userId ? hashUserId(input.userId) : null,
-    delta: Math.abs(Math.trunc(input.amount)),
+    userIdHash,
+    delta: amount,
     reason: input.reason,
     source: input.source,
     referenceId: input.referenceId,
@@ -119,6 +157,17 @@ export async function debitCredits(input: {
   idempotencyKey: string;
 }) {
   const amount = Math.abs(Math.trunc(input.amount ?? 1));
+
+  if (getPersistenceBackend() === "supabase") {
+    return debitSupabaseCreditsAtomically({
+      accountKey: input.accountKey,
+      userIdHash: input.userId ? hashUserId(input.userId) : null,
+      amount,
+      referenceId: input.referenceId,
+      idempotencyKey: input.idempotencyKey,
+    });
+  }
+
   const balance = await getCurrentCreditBalance(input.accountKey);
   if (balance < amount) return { debited: false, balance };
 
