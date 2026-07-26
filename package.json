@@ -21,7 +21,7 @@
     "release:gate:strict": "NODRAMA_RELEASE_GATE_STRICT=true node scripts/verify-release-gate.mjs"
   },
   "dependencies": {
-    "next": "^16.2.4",
+    "next": "^16.2.12",
     "next-auth": "^4.24.15",
     "nodemailer": "^7.0.13",
     "react": "^19.2.5",
