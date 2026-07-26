@@ -18,7 +18,11 @@
     "verify:micro-situation-seed-v1": "node scripts/verify-micro-situation-seed-v1.mjs",
     "verify:nodrama": "node scripts/verify-nodrama-enterprise.mjs",
     "release:gate": "node scripts/verify-release-gate.mjs",
-    "release:gate:strict": "NODRAMA_RELEASE_GATE_STRICT=true node scripts/verify-release-gate.mjs"
+    "release:gate:strict": "NODRAMA_RELEASE_GATE_STRICT=true node scripts/verify-release-gate.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "^16.2.4",
@@ -30,18 +34,25 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "7.0.0",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "4.1.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "eslint-config-prettier": "^10.1.8",
+    "jsdom": "29.1.1",
+    "msw": "2.15.0",
     "prettier": "^3.8.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "4.1.10"
   },
   "optionalDependencies": {
-    "lightningcss-linux-x64-gnu": "1.32.0",
-    "@tailwindcss/oxide-linux-x64-gnu": "4.2.4"
+    "@tailwindcss/oxide-linux-x64-gnu": "4.2.4",
+    "lightningcss-linux-x64-gnu": "1.32.0"
   }
 }

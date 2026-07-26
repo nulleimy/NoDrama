@@ -221,6 +221,19 @@ if [ -f scripts/check-production-promotion-lock.mjs ]; then
   node scripts/check-production-promotion-lock.mjs
 fi
 
+echo "==> Vitest coverage gate"
+if command -v npm >/dev/null 2>&1; then
+  npm run test:coverage
+else
+  node node_modules/vitest/vitest.mjs run --coverage
+fi
+
+echo "==> TypeScript"
+if command -v npm >/dev/null 2>&1; then
+  npm run typecheck
+else
+  node node_modules/typescript/bin/tsc --noEmit
+fi
 echo "==> Lint"
 if command -v npm >/dev/null 2>&1; then
   npm run lint
