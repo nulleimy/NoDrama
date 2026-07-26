@@ -221,6 +221,8 @@ if [ -f scripts/check-production-promotion-lock.mjs ]; then
   node scripts/check-production-promotion-lock.mjs
 fi
 
+echo "==> Product decision execution constitution"
+node scripts/verify-product-decision-execution-constitution.mjs
 echo "==> Vitest coverage gate"
 if command -v npm >/dev/null 2>&1; then
   npm run test:coverage
