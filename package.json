@@ -1,32 +1,7 @@
 {
-  "name": "nodrama",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "verify": "bash scripts/verify.sh",
-    "cf:build": "npx @opennextjs/cloudflare@latest build",
-    "cf:preview": "npx @opennextjs/cloudflare@latest build && npx wrangler@latest dev",
-    "cf:deploy": "npx @opennextjs/cloudflare@latest build && npx wrangler@latest deploy",
-    "verify:cloudflare": "node scripts/verify-cloudflare-deploy.mjs",
-    "smoke:generate": "node scripts/smoke-generate-scenarios.mjs",
-    "verify:content-depth": "node scripts/verify-nodrama-content-depth.mjs",
-    "verify:taxonomy-schema-v2": "node scripts/verify-taxonomy-schema-v2.mjs",
-    "verify:micro-situation-seed-v1": "node scripts/verify-micro-situation-seed-v1.mjs",
-    "verify:nodrama": "node scripts/verify-nodrama-enterprise.mjs",
-    "release:gate": "node scripts/verify-release-gate.mjs",
-    "release:gate:strict": "NODRAMA_RELEASE_GATE_STRICT=true node scripts/verify-release-gate.mjs",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
-  },
   "dependencies": {
-    "next": "^16.2.4",
-    "next-auth": "^4.24.14",
+    "next": "^16.2.12",
+    "next-auth": "^4.24.15",
     "nodemailer": "^7.0.13",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -51,8 +26,33 @@
     "typescript": "^5",
     "vitest": "4.1.10"
   },
+  "name": "nodrama",
   "optionalDependencies": {
     "@tailwindcss/oxide-linux-x64-gnu": "4.2.4",
     "lightningcss-linux-x64-gnu": "1.32.0"
-  }
+  },
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "verify": "bash scripts/verify.sh",
+    "cf:build": "npx @opennextjs/cloudflare@latest build",
+    "cf:preview": "npx @opennextjs/cloudflare@latest build && npx wrangler@latest dev",
+    "cf:deploy": "npx @opennextjs/cloudflare@latest build && npx wrangler@latest deploy",
+    "verify:cloudflare": "node scripts/verify-cloudflare-deploy.mjs",
+    "smoke:generate": "node scripts/smoke-generate-scenarios.mjs",
+    "verify:content-depth": "node scripts/verify-nodrama-content-depth.mjs",
+    "verify:taxonomy-schema-v2": "node scripts/verify-taxonomy-schema-v2.mjs",
+    "verify:micro-situation-seed-v1": "node scripts/verify-micro-situation-seed-v1.mjs",
+    "verify:nodrama": "node scripts/verify-nodrama-enterprise.mjs",
+    "release:gate": "node scripts/verify-release-gate.mjs",
+    "release:gate:strict": "NODRAMA_RELEASE_GATE_STRICT=true node scripts/verify-release-gate.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "version": "0.1.0"
 }
