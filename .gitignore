@@ -41,3 +41,5 @@ data/credits/*.json
 /data/runtime/
 .env.local
 supabase/.temp/
+
+.open-next/
