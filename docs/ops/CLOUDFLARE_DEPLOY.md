@@ -15,7 +15,7 @@ When using the GitHub import flow:
 
 - Framework preset: `None` / custom build
 - Build command: `npm run cf:build`
-- Deploy command: `npx wrangler@latest deploy`
+- Deploy command: `npm run cf:deploy`
 - Output directory: leave empty when deploying with Wrangler / Workers
 - Root directory: repository root
 - Node.js version: `20` or newer
