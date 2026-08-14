@@ -23,7 +23,7 @@
   "dependencies": {
     "next": "^16.2.12",
     "next-auth": "^4.24.15",
-    "nodemailer": "^7.0.13",
+    "nodemailer": "^9.0.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "zod": "^4.4.3",
