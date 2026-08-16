@@ -20,9 +20,27 @@ for (const file of requiredFiles) {
 }
 
 const route = readFileSync("app/api/generate/route.ts", "utf8");
+const directPhraseRoute = route.includes("generatePhraseEngineReply");
+const hybridRoute = route.includes("generateHybridEthicalReply");
 
-if (!route.includes("generatePhraseEngineReply")) {
-  fail("Generate API route does not use phrase engine.");
+let governedHybridRoute = false;
+
+if (hybridRoute) {
+  const hybridPath = "lib/ai/hybridGeneration.ts";
+  if (!existsSync(hybridPath)) {
+    fail("Generate API route uses hybrid generation but hybrid orchestrator is missing.");
+  }
+
+  const hybrid = readFileSync(hybridPath, "utf8");
+  governedHybridRoute = hybrid.includes("generatePhraseEngineReply");
 }
 
-console.log("✅ Phrase engine verified");
+if (!directPhraseRoute && !governedHybridRoute) {
+  fail("Generate API call graph does not preserve the phrase engine baseline/fallback.");
+}
+
+console.log(
+  governedHybridRoute
+    ? "✅ Phrase engine verified through governed hybrid fallback"
+    : "✅ Phrase engine verified"
+);
