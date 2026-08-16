@@ -41,11 +41,11 @@ if [ -f scripts/verify-phrase-realizer-flexibility.mjs ]; then
   node scripts/verify-phrase-realizer-flexibility.mjs
 fi
 
-
 if [ -f scripts/verify-pricing-copy-polish.mjs ]; then
   echo "==> Pricing copy polish"
   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pricing-copy-polish.mjs
 fi
+
 if [ -f scripts/verify-monetization-layer.mjs ]; then
   echo "==> Monetization layer"
   node scripts/verify-monetization-layer.mjs
@@ -146,16 +146,21 @@ if [ -f scripts/verify-generator-quality.mjs ]; then
   node scripts/verify-generator-quality.mjs
 fi
 
+if [ -f scripts/verify-hybrid-ethical-generation-core.mjs ]; then
+  echo "==> Hybrid Ethical Generation Core"
+  node scripts/verify-hybrid-ethical-generation-core.mjs
+fi
+
 if [ -f scripts/verify-safe-logging-core.mjs ]; then
   echo "==> Safe logging core"
   node scripts/verify-safe-logging-core.mjs
 fi
 
-
 if [ -f scripts/verify-production-persistence-plan.mjs ]; then
   echo "==> Production persistence plan"
   node scripts/verify-production-persistence-plan.mjs
 fi
+
 if [ -f scripts/verify-scenario-specific-routing.mjs ]; then
   echo "==> Scenario-specific reply routing"
   node scripts/verify-scenario-specific-routing.mjs
@@ -171,11 +176,11 @@ if [ -f scripts/verify-abuse-guard-foundation.mjs ]; then
   node scripts/verify-abuse-guard-foundation.mjs
 fi
 
-
 if [ -f scripts/verify-auth-user-credit-ledger.mjs ]; then
   echo "==> Auth user credit ledger"
   node scripts/verify-auth-user-credit-ledger.mjs
 fi
+
 if [ -f scripts/verify-production-persistence-boundary.mjs ]; then
   echo "==> Production persistence boundary"
   node scripts/verify-production-persistence-boundary.mjs
