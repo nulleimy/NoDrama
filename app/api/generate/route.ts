@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
+import { generateHybridEthicalReply } from "@/lib/ai/hybridGeneration";
 import { consumeCredit } from "@/lib/credits/creditStore";
 import { getCreditUserId } from "@/lib/credits/userIdentity";
 import {
   isLocalGenerationLimitBypassed,
   shouldBlockFreeGeneration,
 } from "@/lib/generationLimit";
-import { generateRequestSchema, type GenerateErrorResponse } from "@/lib/generateContract";
-import { generatePhraseEngineReply } from "@/lib/language/phraseEngine";
+import {
+  generateRequestSchema,
+  type GenerateErrorResponse,
+} from "@/lib/generateContract";
 import {
   buildClientSignalHash,
   enforceGenerateAbuseLimit,
@@ -86,14 +89,18 @@ export async function POST(request: Request) {
     const nextUsage = creditResult.consumed
       ? currentUsage
       : limitBypassed
-      ? currentUsage
-      : await incrementDailyUsage(anonId);
+        ? currentUsage
+        : await incrementDailyUsage(anonId);
 
     const remaining = creditResult.consumed
       ? Math.max(FREE_DAILY_LIMIT - currentUsage, 0)
       : Math.max(FREE_DAILY_LIMIT - nextUsage, 0);
 
-    const response = generatePhraseEngineReply(parsed.data, remaining, FREE_DAILY_LIMIT);
+    const response = await generateHybridEthicalReply(
+      parsed.data,
+      remaining,
+      FREE_DAILY_LIMIT
+    );
 
     return NextResponse.json(response);
   } catch (error) {
